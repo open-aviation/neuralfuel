@@ -15,16 +15,16 @@ resolution-markers = [
 
 [[package]]
 name = "aerox"
-version = "0.3"
+version = "0.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "pyyaml" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/79/7f/b57b354655766cfcd6ab7f17f7317fb41aa322e8eb19942b64532fbf9894/aerox-0.3.tar.gz", hash = "sha256:68c2ac7625611ea71839a0039ae366e7a3d0ea976f9a794e56cf7d82d25e73a0", size = 1984991, upload-time = "2026-11-24T11:35:43.44Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/b4/6ac98fc16f8f854b5cc5a79f47ea39465c028cdec4dda1447ddc21ac311c/aerox-0.5.tar.gz", hash = "sha256:ad513ca0bbdcde02677e476a4d0c6382e5cc74bd310a2ec4da42ec1d25d001cc", size = 2001054, upload-time = "2026-11-25T08:17:30.79Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/ca/f7dadfe2946e60bd332df0a7f2173fc410b92f41e630b5daeafa7f3a64a6/aerox-0.3-py3-none-any.whl", hash = "sha256:beb81a09ba72bd0c7971588390b92284c05856167aa2a655d0d1bce8d7bead26", size = 1656202, upload-time = "2026-11-24T11:35:41.598Z" },
+    { url = "https://files.pythonhosted.org/packages/01/43/3c5545bf2040d163b50cca96a9100cda5b1abed48b8e7d1f7facd58398eb/aerox-0.5-py3-none-any.whl", hash = "sha256:c185643f76cea14e49a244b8f00b09d87c57f39d15f1c62642655ad882c1e13d", size = 1677563, upload-time = "2026-11-25T08:17:29.258Z" },
 ]
 
 [[package]]
@@ -714,7 +714,7 @@ reference = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aerox", specifier = ">=0.3.0" },
+    { name = "aerox", specifier = ">=0.5" },
     { name = "numpy", specifier = ">=2.5.5" },
     { name = "onnx", specifier = ">=1.23.2" },
     { name = "onnxruntime", specifier = ">=1.32.0" },

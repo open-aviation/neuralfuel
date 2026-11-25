@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "aerox>=0.3.0",
+    "aerox>=0.5",
     "numpy>=2.5.5",
     "onnx>=1.23.2",
     "onnxruntime>=1.32.0",

@@ -1,0 +1,68 @@
+[project]
+name = "neuralfuel"
+version = "0.1.0"
+description = "Federated learning of neural aircraft fuel-flow models: train on local flight data with fuel records, share only the model"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+keywords = ["federated learning", "fuel flow", "aircraft performance", "flight data", "QAR", "ADS-B"]
+authors = [
+    { name = "Junzi Sun", email = "git@junzis.com" }
+]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "aerox>=0.3.0",
+    "numpy>=2.5.5",
+    "onnx>=1.23.2",
+    "onnxruntime>=1.32.0",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "scipy>=1.18.1",
+    "torch>=2.15.0",
+]
+
+[project.urls]
+Repository = "https://github.com/open-aviation/neuralfuel"
+
+[project.scripts]
+neuralfuel = "neuralfuel.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+casadi = [
+    "casadi>=3.8.1",
+]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-xdist>=3.8.0",
+]
+examples = [
+    "matplotlib>=3.11.2",
+]
+reference = [
+    "openap>=2.6.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+# private files of the user (ignored by git; listed here for a folder without git)
+extend-exclude = ["local"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]

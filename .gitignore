@@ -1,0 +1,78 @@
+# ---- Private: never commit ----
+# local settings, private adapters, private offsets
+local.toml
+local/
+private/
+.env
+.env.*
+
+# flight data in any form
+data/
+*.parquet
+*.csv
+*.feather
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# ---- Working outputs ----
+runs/
+work/
+# outputs of the quick start and of a merge
+/prep/
+/run/
+/share/
+/next/
+# figures of the examples (--plot)
+examples/output/
+
+# model files are ignored, except the shared and the contributed models
+*.pt
+*.onnx
+!/models/**/*.pt
+!/models/**/*.onnx
+!/contributions/**/*.pt
+!/contributions/**/*.onnx
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# environments
+.venv/
+venv/
+env/
+
+# build and packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+wheels/
+
+# tests, coverage, tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# notebooks
+.ipynb_checkpoints/
+
+# ---- Editors and system ----
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db

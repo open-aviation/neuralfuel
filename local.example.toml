@@ -1,0 +1,4 @@
+# Copy to local.toml (not tracked) and set the path of your data file.
+[data]
+path = "/path/to/flights.parquet"
+adapter = "canonical"

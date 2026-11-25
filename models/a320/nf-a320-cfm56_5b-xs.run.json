@@ -1,0 +1,2262 @@
+{
+ "neuralfuel_version": "0.1.0",
+ "config": {
+  "seed": 0,
+  "max_steps": 19500,
+  "patience_steps": 3900,
+  "eval_every": 130,
+  "max_epochs": null,
+  "patience": null,
+  "lr": 0.002,
+  "batch": 4096,
+  "weight_decay": 1e-06,
+  "hidden": 32,
+  "layers": 3,
+  "temperature": "fixed",
+  "theta_exp": 0.5,
+  "aircraft": {
+   "type": "a320",
+   "engine": "cfm56_5b",
+   "mmo": 0.82,
+   "vmo_kt": 350.0,
+   "mass_kg": [
+    42600.0,
+    78000.0
+   ],
+   "alt_ft": [
+    10000.0,
+    39800.0
+   ],
+   "wing_area_m2": 122.0
+  },
+  "device": "cuda:0",
+  "threads": 2,
+  "loss": {
+   "points": 1.0,
+   "window": 0.1,
+   "mach_convexity": 0.001,
+   "mass_monotone": 0.001,
+   "energy_monotone": 0.001,
+   "range_boundary": 0.001,
+   "drag_rise": 0.01,
+   "n_window_batch": 512,
+   "n_colloc": 4096,
+   "scale_mach": 0.1,
+   "scale_eps": 0.02,
+   "eps_powered": -0.005,
+   "p6_alt_min_ft": 30000.0,
+   "p6_min": 1.1,
+   "drag_rise_mach_min": 0.7,
+   "drag_rise_cl_factor": 1.1,
+   "mach_min": 0.45,
+   "min_cas_kt": 180.0,
+   "eps": [
+    -0.08,
+    0.08
+   ],
+   "dT_isa": [
+    -15.0,
+    25.0
+   ],
+   "teacher": 10.0,
+   "n_teacher_points": 262144,
+   "teacher_seed": 777
+  }
+ },
+ "init": "from scratch",
+ "init_weights_sha256": null,
+ "protection": {
+  "teacher_weight": 0.0
+ },
+ "features": [
+  "mach",
+  "ln_delta",
+  "ln_m",
+  "sin_gamma",
+  "acc_in",
+  "ln_theta"
+ ],
+ "temperature": "fixed",
+ "theta_exp": 0.5,
+ "aircraft": {
+  "type": "a320",
+  "engine": "cfm56_5b",
+  "mmo": 0.82,
+  "vmo_kt": 350.0,
+  "mass_kg": [
+   42600.0,
+   78000.0
+  ],
+  "alt_ft": [
+   10000.0,
+   39800.0
+  ],
+  "wing_area_m2": 122.0
+ },
+ "size": "xs",
+ "n_params": 2337,
+ "n_train_blocks": 520973,
+ "n_aircraft": 2,
+ "n_val_blocks": 67273,
+ "n_train_windows": 5866,
+ "n_val_windows": 874,
+ "budget": "steps",
+ "steps_per_epoch": 128,
+ "val_loss": 0.0019443038618192077,
+ "best_step": 19500,
+ "steps_run": 19500,
+ "best_epoch": 152.34375,
+ "epochs_run": 152.34375,
+ "run_time_s": 387.3163778781891,
+ "device": "NVIDIA RTX PRO 4500 Blackwell",
+ "torch": "2.15.0+cu132",
+ "python": "3.13.16",
+ "envelope": {
+  "format": "neuralfuel-envelope-1",
+  "quantiles": [
+   0.01,
+   0.99
+  ],
+  "phase_rule": {
+   "level_fpm": 300.0,
+   "cruise_alt_ft": 25000.0
+  },
+  "phases": {
+   "all": {
+    "blocks": 520973,
+    "mach": [
+     0.34698449663919523,
+     0.7844463806227058
+    ],
+    "alt_ft": [
+     3607.144,
+     39008.0
+    ],
+    "mass_kg": [
+     51595.878838916025,
+     69871.36970825196
+    ],
+    "wd_t": [
+     66.27249692145695,
+     315.2128679650882
+    ],
+    "dT_isa_k": [
+     3.0153239819388244,
+     17.998787986835424
+    ],
+    "sin_gamma": [
+     -0.07128359644923782,
+     0.10839179080578969
+    ],
+    "acc_in": [
+     -0.03495683379730865,
+     0.05057286573344562
+    ]
+   },
+   "climb": {
+    "blocks": 106995,
+    "mach": [
+     0.3388921406046182,
+     0.779563511005384
+    ],
+    "alt_ft": [
+     2773.08,
+     37646.812000000005
+    ],
+    "mass_kg": [
+     52189.43167938232,
+     71160.47924285888
+    ],
+    "wd_t": [
+     65.92592620953914,
+     300.8994106631553
+    ],
+    "dT_isa_k": [
+     6.817578520461698,
+     18.671228910964
+    ],
+    "sin_gamma": [
+     0.008363164360671603,
+     0.13676668458836388
+    ],
+    "acc_in": [
+     -0.028776966040405243,
+     0.0743505195318321
+    ]
+   },
+   "level": {
+    "blocks": 338505,
+    "mach": [
+     0.4449253186750178,
+     0.7857871388888307
+    ],
+    "alt_ft": [
+     11059.016,
+     39013.6
+    ],
+    "mass_kg": [
+     51981.68637084961,
+     68807.20570510256
+    ],
+    "wd_t": [
+     87.60680261543556,
+     317.3602473063733
+    ],
+    "dT_isa_k": [
+     2.7519295797752337,
+     16.598240393250826
+    ],
+    "sin_gamma": [
+     -0.0022828868839813057,
+     0.0027271653953550336
+    ],
+    "acc_in": [
+     -0.011851699284855933,
+     0.011864540644285725
+    ]
+   },
+   "descent": {
+    "blocks": 75473,
+    "mach": [
+     0.32222363055713493,
+     0.7787764468590033
+    ],
+    "alt_ft": [
+     3063.0879999999997,
+     37470.656
+    ],
+    "mass_kg": [
+     50294.32272949219,
+     65590.36485687256
+    ],
+    "wd_t": [
+     61.724230824767616,
+     279.9624083562827
+    ],
+    "dT_isa_k": [
+     7.3369848923074645,
+     18.454436185787646
+    ],
+    "sin_gamma": [
+     -0.09474360713241324,
+     -0.011285418899290888
+    ],
+    "acc_in": [
+     -0.04415368444050979,
+     0.031337460972193365
+    ]
+   }
+  },
+  "cruise": {
+   "windows": 5866,
+   "max_wd_t": 339.56718428404474,
+   "max_cl": 0.6777110692378395
+  },
+  "wing_area_m2": 122.0
+ },
+ "local_envelope": {
+  "format": "neuralfuel-envelope-1",
+  "quantiles": [
+   0.01,
+   0.99
+  ],
+  "phase_rule": {
+   "level_fpm": 300.0,
+   "cruise_alt_ft": 25000.0
+  },
+  "phases": {
+   "all": {
+    "blocks": 520973,
+    "mach": [
+     0.34698449663919523,
+     0.7844463806227058
+    ],
+    "alt_ft": [
+     3607.144,
+     39008.0
+    ],
+    "mass_kg": [
+     51595.878838916025,
+     69871.36970825196
+    ],
+    "wd_t": [
+     66.27249692145695,
+     315.2128679650882
+    ],
+    "dT_isa_k": [
+     3.0153239819388244,
+     17.998787986835424
+    ],
+    "sin_gamma": [
+     -0.07128359644923782,
+     0.10839179080578969
+    ],
+    "acc_in": [
+     -0.03495683379730865,
+     0.05057286573344562
+    ]
+   },
+   "climb": {
+    "blocks": 106995,
+    "mach": [
+     0.3388921406046182,
+     0.779563511005384
+    ],
+    "alt_ft": [
+     2773.08,
+     37646.812000000005
+    ],
+    "mass_kg": [
+     52189.43167938232,
+     71160.47924285888
+    ],
+    "wd_t": [
+     65.92592620953914,
+     300.8994106631553
+    ],
+    "dT_isa_k": [
+     6.817578520461698,
+     18.671228910964
+    ],
+    "sin_gamma": [
+     0.008363164360671603,
+     0.13676668458836388
+    ],
+    "acc_in": [
+     -0.028776966040405243,
+     0.0743505195318321
+    ]
+   },
+   "level": {
+    "blocks": 338505,
+    "mach": [
+     0.4449253186750178,
+     0.7857871388888307
+    ],
+    "alt_ft": [
+     11059.016,
+     39013.6
+    ],
+    "mass_kg": [
+     51981.68637084961,
+     68807.20570510256
+    ],
+    "wd_t": [
+     87.60680261543556,
+     317.3602473063733
+    ],
+    "dT_isa_k": [
+     2.7519295797752337,
+     16.598240393250826
+    ],
+    "sin_gamma": [
+     -0.0022828868839813057,
+     0.0027271653953550336
+    ],
+    "acc_in": [
+     -0.011851699284855933,
+     0.011864540644285725
+    ]
+   },
+   "descent": {
+    "blocks": 75473,
+    "mach": [
+     0.32222363055713493,
+     0.7787764468590033
+    ],
+    "alt_ft": [
+     3063.0879999999997,
+     37470.656
+    ],
+    "mass_kg": [
+     50294.32272949219,
+     65590.36485687256
+    ],
+    "wd_t": [
+     61.724230824767616,
+     279.9624083562827
+    ],
+    "dT_isa_k": [
+     7.3369848923074645,
+     18.454436185787646
+    ],
+    "sin_gamma": [
+     -0.09474360713241324,
+     -0.011285418899290888
+    ],
+    "acc_in": [
+     -0.04415368444050979,
+     0.031337460972193365
+    ]
+   }
+  },
+  "cruise": {
+   "windows": 5866,
+   "max_wd_t": 339.56718428404474,
+   "max_cl": 0.6777110692378395
+  },
+  "wing_area_m2": 122.0
+ },
+ "prep": {
+  "block_s": 10,
+  "sg_window": 21,
+  "sg_order": 2,
+  "min_cas_kt": 180.0,
+  "max_ff_imbalance": 0.15,
+  "level_fpm": 300.0,
+  "cruise_alt_ft": 25000.0,
+  "split": [
+   0.8,
+   0.1
+  ],
+  "win_s": 300,
+  "win_min_alt_ft": 25000.0,
+  "win_lookahead_s": 60,
+  "win_alt_change_ft": 100.0,
+  "win_mach_sd": 0.003,
+  "win_alt_range_ft": 150.0,
+  "win_roll_deg": 5.0,
+  "win_roll_share": 0.95,
+  "win_ff_imbalance": 0.05,
+  "exclude_anti_ice": false
+ },
+ "drag_rise": {
+  "weight": 0.01,
+  "mach_min": 0.7,
+  "mach_max": 0.82,
+  "cl_factor": 1.1,
+  "cl_max": 0.7454821761616235,
+  "aerox_version": "0.3",
+  "table": {
+   "type": "a320",
+   "wing_area_m2": 122.0,
+   "mach": [
+    0.7,
+    0.82,
+    25
+   ],
+   "cl": [
+    0.05,
+    0.7454821761616235,
+    71
+   ],
+   "ln_delta": [
+    -1.6773185953978147,
+    -0.37439628078149423,
+    12
+   ],
+   "dmach": 0.0001
+  },
+  "table_sha256": "4b7b81a0c75490742dd8c46ad60fdea86632de8fdb8a4ceca45c185210fdfe5e"
+ },
+ "train_loss": 0.002376288641244173,
+ "val_window_loss": 6.547756493091583e-05,
+ "weights_sha256": "c55a238ac31bae26c669bc58abb4e4159b4df5f1eee55accebe0f573b66ee0ce",
+ "history": [
+  {
+   "step": 130,
+   "epoch": 1.015625,
+   "val": 0.008583017624914646,
+   "points": 0.06949408904004556,
+   "window": 0.0020644867144605644,
+   "mach_convexity": 1.7079566186311512e-07,
+   "mass_monotone": 3.457442785574745e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.2828949011887713,
+   "drag_rise": 0.3862101859914569
+  },
+  {
+   "step": 260,
+   "epoch": 2.03125,
+   "val": 0.00494757853448391,
+   "points": 0.0069554416212038355,
+   "window": 0.0006263007340469183,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.73220683413317e-05,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005627561984650898
+  },
+  {
+   "step": 390,
+   "epoch": 3.046875,
+   "val": 0.004413951653987169,
+   "points": 0.005417076337079589,
+   "window": 0.0006768109769417116,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.0276605594717e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00022481881891368315
+  },
+  {
+   "step": 520,
+   "epoch": 4.0625,
+   "val": 0.004227323457598686,
+   "points": 0.005023519771818358,
+   "window": 0.0005527641946593157,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008224331198457198
+  },
+  {
+   "step": 650,
+   "epoch": 5.078125,
+   "val": 0.004001081455498934,
+   "points": 0.004811364847521943,
+   "window": 0.00045213688863441346,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0017178897898142728
+  },
+  {
+   "step": 780,
+   "epoch": 6.09375,
+   "val": 0.0038929032161831856,
+   "points": 0.004697971518796223,
+   "window": 0.0003803339330121302,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.002079045665987696
+  },
+  {
+   "step": 910,
+   "epoch": 7.109375,
+   "val": 0.003940464463084936,
+   "points": 0.004499815836047324,
+   "window": 0.0003258977795037656,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0019462041440419854
+  },
+  {
+   "step": 1040,
+   "epoch": 8.125,
+   "val": 0.00366743141785264,
+   "points": 0.004403710875731821,
+   "window": 0.00025873875688725654,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0015674256513683268
+  },
+  {
+   "step": 1170,
+   "epoch": 9.140625,
+   "val": 0.003611404914408922,
+   "points": 0.004261994526649897,
+   "window": 0.0002347757754390701,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.2953037625609594e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0011756424577190326
+  },
+  {
+   "step": 1300,
+   "epoch": 10.15625,
+   "val": 0.003451426513493061,
+   "points": 0.004237801413266705,
+   "window": 0.0002455900071744019,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.7451143348124294e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009367755797799103
+  },
+  {
+   "step": 1430,
+   "epoch": 11.171875,
+   "val": 0.0033581892494112253,
+   "points": 0.004029761467917034,
+   "window": 0.00019639032969000534,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.130446306205293e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000824381548535222
+  },
+  {
+   "step": 1560,
+   "epoch": 12.1875,
+   "val": 0.0033340533263981342,
+   "points": 0.004008741146669938,
+   "window": 0.0001817393179897828,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.587603112784403e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007890657154628291
+  },
+  {
+   "step": 1690,
+   "epoch": 13.203125,
+   "val": 0.0033648270182311535,
+   "points": 0.0038317429940574444,
+   "window": 0.00016452789255149233,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.554706966186077e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007799135626275808
+  },
+  {
+   "step": 1820,
+   "epoch": 14.21875,
+   "val": 0.0031545099336653948,
+   "points": 0.0038574117629860457,
+   "window": 0.00017608111408592847,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.073726224859911e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008208443296518034
+  },
+  {
+   "step": 1950,
+   "epoch": 15.234375,
+   "val": 0.0031108641996979713,
+   "points": 0.0038280667629666055,
+   "window": 0.0001875928703297037,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.815696622624447e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008583126298617571
+  },
+  {
+   "step": 2080,
+   "epoch": 16.25,
+   "val": 0.0032762442715466022,
+   "points": 0.0036906905131987655,
+   "window": 0.0001560977003604281,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.876545286550778e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009388869547714981
+  },
+  {
+   "step": 2210,
+   "epoch": 17.265625,
+   "val": 0.0033927669283002615,
+   "points": 0.0036674116165019,
+   "window": 0.00014453280986904596,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.292462368382985e-05,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009481092250028339
+  },
+  {
+   "step": 2340,
+   "epoch": 18.28125,
+   "val": 0.003026289166882634,
+   "points": 0.0036602388601750134,
+   "window": 0.0001652410266195567,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0015905976738046e-05,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010265185909632307
+  },
+  {
+   "step": 2470,
+   "epoch": 19.296875,
+   "val": 0.002952410839498043,
+   "points": 0.0035779387743857046,
+   "window": 0.00014416551202884876,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.689819518581106e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010369082773999813
+  },
+  {
+   "step": 2600,
+   "epoch": 20.3125,
+   "val": 0.003162564244121313,
+   "points": 0.0035448722111491057,
+   "window": 0.00013312140687888203,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.860934612197595e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010335844169066359
+  },
+  {
+   "step": 2730,
+   "epoch": 21.328125,
+   "val": 0.0029086116701364517,
+   "points": 0.0035847238247067883,
+   "window": 0.00014456388800261686,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.133530571562372e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010927093170511608
+  },
+  {
+   "step": 2860,
+   "epoch": 22.34375,
+   "val": 0.0028961754869669676,
+   "points": 0.003465951613795299,
+   "window": 0.00013868477354453016,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.209937285449716e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010996917840272475
+  },
+  {
+   "step": 2990,
+   "epoch": 23.359375,
+   "val": 0.002867569448426366,
+   "points": 0.003524571420768133,
+   "window": 0.00016279480439082434,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.5322883668456135e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0011420305303405398
+  },
+  {
+   "step": 3120,
+   "epoch": 24.375,
+   "val": 0.002850178861990571,
+   "points": 0.003458694058756989,
+   "window": 0.00014887510002993692,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.681834356133579e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0011651993509776031
+  },
+  {
+   "step": 3250,
+   "epoch": 25.390625,
+   "val": 0.002829423174262047,
+   "points": 0.0034358889760019687,
+   "window": 0.00013986957553872623,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.2704242397968005e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.001100108520880055
+  },
+  {
+   "step": 3380,
+   "epoch": 26.40625,
+   "val": 0.0028580327052623034,
+   "points": 0.0033882368821650743,
+   "window": 0.00012787585549701292,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.674290368792382e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0011014759621153084
+  },
+  {
+   "step": 3510,
+   "epoch": 27.421875,
+   "val": 0.002742388751357794,
+   "points": 0.0033762167494457503,
+   "window": 0.00014463207228870416,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.634003094235628e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010856295828349314
+  },
+  {
+   "step": 3640,
+   "epoch": 28.4375,
+   "val": 0.0027512803208082914,
+   "points": 0.0033733309891361457,
+   "window": 0.00012525712176843977,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.0539985791186903e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.001102697680471465
+  },
+  {
+   "step": 3770,
+   "epoch": 29.453125,
+   "val": 0.002715468406677246,
+   "points": 0.003317292140295299,
+   "window": 0.00012422943635521314,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.9042654189573336e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.001037059166880611
+  },
+  {
+   "step": 3900,
+   "epoch": 30.46875,
+   "val": 0.0026982238050550222,
+   "points": 0.003251048967313881,
+   "window": 0.00011953541834373028,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.7893973424103738e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010356579566947542
+  },
+  {
+   "step": 4030,
+   "epoch": 31.484375,
+   "val": 0.002732791705057025,
+   "points": 0.0033175070805904956,
+   "window": 0.00012396967353057474,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.39076443875499e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.001063019483206937
+  },
+  {
+   "step": 4160,
+   "epoch": 32.5,
+   "val": 0.002739464398473501,
+   "points": 0.003273436239060874,
+   "window": 0.0001341978248092346,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4595924874174834e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0010304580953043813
+  },
+  {
+   "step": 4290,
+   "epoch": 33.515625,
+   "val": 0.002640635473653674,
+   "points": 0.003239599656528578,
+   "window": 0.00012290366010767265,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.239843260226918e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009839745690652098
+  },
+  {
+   "step": 4420,
+   "epoch": 34.53125,
+   "val": 0.0026311601977795362,
+   "points": 0.0032243099197960244,
+   "window": 0.00011914563370877519,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.2356056751027447e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.001010722917271778
+  },
+  {
+   "step": 4550,
+   "epoch": 35.546875,
+   "val": 0.002639850601553917,
+   "points": 0.0032267183226604873,
+   "window": 0.00012337906742826679,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0359255908111859e-06,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009924395475536586
+  },
+  {
+   "step": 4680,
+   "epoch": 36.5625,
+   "val": 0.002651672577485442,
+   "points": 0.00324827810892692,
+   "window": 0.0001369515079064653,
+   "mach_convexity": 0.0,
+   "mass_monotone": 5.471348413446013e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009931489668535784
+  },
+  {
+   "step": 4810,
+   "epoch": 37.578125,
+   "val": 0.0025653187185525894,
+   "points": 0.0031592108255538804,
+   "window": 0.00012058285954900874,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.186164709537314e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009444859919872565
+  },
+  {
+   "step": 4940,
+   "epoch": 38.59375,
+   "val": 0.0025550909340381622,
+   "points": 0.0031533856912014575,
+   "window": 0.000138057079367662,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.791312465898025e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009805723062107482
+  },
+  {
+   "step": 5070,
+   "epoch": 39.609375,
+   "val": 0.0025517926551401615,
+   "points": 0.0031018738079672823,
+   "window": 0.00011730940106924838,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.010649738824342e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0009175613813567907
+  },
+  {
+   "step": 5200,
+   "epoch": 40.625,
+   "val": 0.0025522836949676275,
+   "points": 0.0031702459467431673,
+   "window": 0.00012236828020272347,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.545383288238157e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008784283977897408
+  },
+  {
+   "step": 5330,
+   "epoch": 41.640625,
+   "val": 0.0025242832489311695,
+   "points": 0.003122971416451037,
+   "window": 0.00011725005936638739,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.4476377829211246e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008850462398885821
+  },
+  {
+   "step": 5460,
+   "epoch": 42.65625,
+   "val": 0.002481755567714572,
+   "points": 0.003112547885841475,
+   "window": 0.00011472237059094299,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.805266682521674e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000873707060684235
+  },
+  {
+   "step": 5590,
+   "epoch": 43.671875,
+   "val": 0.002607240341603756,
+   "points": 0.003022841537872759,
+   "window": 0.00011931790297519631,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.556729138755495e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008883248031802045
+  },
+  {
+   "step": 5720,
+   "epoch": 44.6875,
+   "val": 0.0024715554900467396,
+   "points": 0.0030722802486987067,
+   "window": 0.00011869114734089145,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.3566589165856564e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008307669690111652
+  },
+  {
+   "step": 5850,
+   "epoch": 45.703125,
+   "val": 0.0024641116615384817,
+   "points": 0.0030667041034366078,
+   "window": 0.00012138626060242621,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.5014504791517506e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008201965468917758
+  },
+  {
+   "step": 5980,
+   "epoch": 46.71875,
+   "val": 0.0024784847628325224,
+   "points": 0.0030328725948213383,
+   "window": 0.00011411283905125367,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1237100471474569e-07,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008199683594284579
+  },
+  {
+   "step": 6110,
+   "epoch": 47.734375,
+   "val": 0.0025140803772956133,
+   "points": 0.0029683264796263897,
+   "window": 0.0001220904481530082,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.247266345545133e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008112867902337502
+  },
+  {
+   "step": 6240,
+   "epoch": 48.75,
+   "val": 0.0024237215984612703,
+   "points": 0.0029917390623058265,
+   "window": 0.0001240946744264175,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.987758288811917e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0008095750148640945
+  },
+  {
+   "step": 6370,
+   "epoch": 49.765625,
+   "val": 0.0024782633408904076,
+   "points": 0.0030305807263805314,
+   "window": 0.00013565345954982778,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.566214310700482e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007598650129064202
+  },
+  {
+   "step": 6500,
+   "epoch": 50.78125,
+   "val": 0.002391578396782279,
+   "points": 0.0029128433706668705,
+   "window": 0.00012003755574159395,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.803812134477062e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007945616449712991
+  },
+  {
+   "step": 6630,
+   "epoch": 51.796875,
+   "val": 0.002392124617472291,
+   "points": 0.0029282200042731487,
+   "window": 0.00011083744673389727,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.6243911065287736e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007507721736776427
+  },
+  {
+   "step": 6760,
+   "epoch": 52.8125,
+   "val": 0.002338414080440998,
+   "points": 0.002924773140022388,
+   "window": 0.00011663053692945351,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.851784088131707e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007282245035569829
+  },
+  {
+   "step": 6890,
+   "epoch": 53.828125,
+   "val": 0.0023522665724158287,
+   "points": 0.0028992567497950336,
+   "window": 0.00011463098344393075,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.2966886252961982e-08,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007471710777071376
+  },
+  {
+   "step": 7020,
+   "epoch": 54.84375,
+   "val": 0.002311479998752475,
+   "points": 0.002851508937489528,
+   "window": 0.00012035537001793273,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.954194355059876e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007447278317368517
+  },
+  {
+   "step": 7150,
+   "epoch": 55.859375,
+   "val": 0.0023074543569236994,
+   "points": 0.0028373988757196527,
+   "window": 0.0001106642387570061,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.431183037197561e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006860294759882471
+  },
+  {
+   "step": 7280,
+   "epoch": 56.875,
+   "val": 0.002284014830365777,
+   "points": 0.002844798948185948,
+   "window": 0.00011315253421064251,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.951340682200435e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007230496844455887
+  },
+  {
+   "step": 7410,
+   "epoch": 57.890625,
+   "val": 0.0023064070846885443,
+   "points": 0.002820591333035666,
+   "window": 0.00011874552202733377,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.478930261817499e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007122350426820609
+  },
+  {
+   "step": 7540,
+   "epoch": 58.90625,
+   "val": 0.0023220996372401714,
+   "points": 0.0028110364326634084,
+   "window": 0.00012215546521474608,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.661471218725388e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0007015921788899084
+  },
+  {
+   "step": 7670,
+   "epoch": 59.921875,
+   "val": 0.002259819535538554,
+   "points": 0.0027703130581917673,
+   "window": 0.00011789853043200519,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.435755438835499e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006912805867614225
+  },
+  {
+   "step": 7800,
+   "epoch": 60.9375,
+   "val": 0.00222561857663095,
+   "points": 0.002757433307572053,
+   "window": 0.00010806241580911984,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.3233631011535005e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006807264482351737
+  },
+  {
+   "step": 7930,
+   "epoch": 61.953125,
+   "val": 0.0022230639588087797,
+   "points": 0.00271681694027323,
+   "window": 0.00011086516818837621,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.009900676210092e-10,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006440837719800094
+  },
+  {
+   "step": 8060,
+   "epoch": 62.96875,
+   "val": 0.002195092849433422,
+   "points": 0.002732768550945016,
+   "window": 0.00011520576859206463,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.3121596269088865e-09,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006684003966466452
+  },
+  {
+   "step": 8190,
+   "epoch": 63.984375,
+   "val": 0.002199712209403515,
+   "points": 0.0027216787790306485,
+   "window": 0.00011558749835015848,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.024996648996281e-10,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006903185954657741
+  },
+  {
+   "step": 8320,
+   "epoch": 65.0,
+   "val": 0.002300932537764311,
+   "points": 0.002697622243207521,
+   "window": 0.00011288254273285229,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006714122685550067
+  },
+  {
+   "step": 8450,
+   "epoch": 66.015625,
+   "val": 0.0021572147961705923,
+   "points": 0.002680872928781005,
+   "window": 0.0001153138940795683,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.720879373844901e-12,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006702200249912074
+  },
+  {
+   "step": 8580,
+   "epoch": 67.03125,
+   "val": 0.002151484601199627,
+   "points": 0.002661630346511419,
+   "window": 0.00011337932732063704,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006650404986710503
+  },
+  {
+   "step": 8710,
+   "epoch": 68.046875,
+   "val": 0.0021574837155640125,
+   "points": 0.0026490649038281005,
+   "window": 0.00010726893155011706,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006552981465714626
+  },
+  {
+   "step": 8840,
+   "epoch": 69.0625,
+   "val": 0.002130775945261121,
+   "points": 0.0026206226016466435,
+   "window": 0.00010996457136710747,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000671277379240984
+  },
+  {
+   "step": 8970,
+   "epoch": 70.078125,
+   "val": 0.00217202166095376,
+   "points": 0.002643374954529393,
+   "window": 0.00011727934576741133,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.608269652654599e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006752065541849544
+  },
+  {
+   "step": 9100,
+   "epoch": 71.09375,
+   "val": 0.002125329105183482,
+   "points": 0.0025840722311001557,
+   "window": 0.0001087525921040931,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006719357855707551
+  },
+  {
+   "step": 9230,
+   "epoch": 72.109375,
+   "val": 0.002220497466623783,
+   "points": 0.002651089017924208,
+   "window": 0.0001204690171737009,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006924436962715565
+  },
+  {
+   "step": 9360,
+   "epoch": 73.125,
+   "val": 0.0021071862429380417,
+   "points": 0.002597232402051584,
+   "window": 0.00010564030123462614,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.843681177315375e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006494037063720708
+  },
+  {
+   "step": 9490,
+   "epoch": 74.140625,
+   "val": 0.002095745177939534,
+   "points": 0.0025961444014683368,
+   "window": 0.00011543457954898119,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006570594362878742
+  },
+  {
+   "step": 9620,
+   "epoch": 75.15625,
+   "val": 0.002096116077154875,
+   "points": 0.002565217019022944,
+   "window": 0.00010371234647419233,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006533035003275683
+  },
+  {
+   "step": 9750,
+   "epoch": 76.171875,
+   "val": 0.002085997024551034,
+   "points": 0.0025789664592593907,
+   "window": 0.00010743116721501932,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006500741124350148
+  },
+  {
+   "step": 9880,
+   "epoch": 77.1875,
+   "val": 0.002073516370728612,
+   "points": 0.002529418843690879,
+   "window": 0.00010474554577600569,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.744209728587031e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006170279500880637
+  },
+  {
+   "step": 10010,
+   "epoch": 78.203125,
+   "val": 0.002078534569591284,
+   "points": 0.002587890582015881,
+   "window": 0.00011896893590276774,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006502901938242408
+  },
+  {
+   "step": 10140,
+   "epoch": 79.21875,
+   "val": 0.0020839222706854343,
+   "points": 0.0025379171756167826,
+   "window": 0.00010650737822288647,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.5740107614728225e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006653969818636631
+  },
+  {
+   "step": 10270,
+   "epoch": 80.234375,
+   "val": 0.0020717685110867023,
+   "points": 0.0025245513426713074,
+   "window": 0.0001098911467124708,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.0489488684924116e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006188292920481987
+  },
+  {
+   "step": 10400,
+   "epoch": 81.25,
+   "val": 0.0020717920269817114,
+   "points": 0.002556099719367921,
+   "window": 0.00010523441613678678,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1798046738950147e-10,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006072334733639414
+  },
+  {
+   "step": 10530,
+   "epoch": 82.265625,
+   "val": 0.0021314877085387707,
+   "points": 0.002522342992373384,
+   "window": 0.00011116620377064325,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.167966743634364e-12,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006217659433157398
+  },
+  {
+   "step": 10660,
+   "epoch": 83.28125,
+   "val": 0.0020551986526697874,
+   "points": 0.0025212210262767396,
+   "window": 0.00010848601416980203,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006118570624564129
+  },
+  {
+   "step": 10790,
+   "epoch": 84.296875,
+   "val": 0.002059538383036852,
+   "points": 0.0025162759810112988,
+   "window": 0.00010709656959918972,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0670591026692348e-11,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0006184345991082059
+  },
+  {
+   "step": 10920,
+   "epoch": 85.3125,
+   "val": 0.0020468998700380325,
+   "points": 0.0025263558697098724,
+   "window": 0.00011399898139643482,
+   "mach_convexity": 0.0,
+   "mass_monotone": 0.0,
+   "energy_monotone": 0.0,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000577573275166707
+  },
+  {
+   "step": 11050,
+   "epoch": 86.328125,
+   "val": 0.002093667397275567,
+   "points": 0.00247871983044136,
+   "window": 0.00010315772983281372,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1027381598672525e-13,
+   "energy_monotone": 1.7410734392670363e-10,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005812571518338071
+  },
+  {
+   "step": 11180,
+   "epoch": 87.34375,
+   "val": 0.0020368846599012613,
+   "points": 0.002490030812063756,
+   "window": 0.00010322550442651846,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.183705737120667e-10,
+   "energy_monotone": 1.0653765097020352e-10,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005460361450856838
+  },
+  {
+   "step": 11310,
+   "epoch": 88.359375,
+   "val": 0.0020592939108610153,
+   "points": 0.0025451372001463403,
+   "window": 0.00010489405221261012,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.696947216081025e-10,
+   "energy_monotone": 9.564149875356783e-10,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005796963543756507
+  },
+  {
+   "step": 11440,
+   "epoch": 89.375,
+   "val": 0.0020396390464156866,
+   "points": 0.002467192134533364,
+   "window": 0.0001007493380501938,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.89340739247032e-10,
+   "energy_monotone": 5.268419794441242e-10,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005780164933709715
+  },
+  {
+   "step": 11570,
+   "epoch": 90.390625,
+   "val": 0.0020218470599502325,
+   "points": 0.0024825705860096674,
+   "window": 9.990049880938246e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.30234851377643e-10,
+   "energy_monotone": 2.9897554177497045e-09,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005394142079659594
+  },
+  {
+   "step": 11700,
+   "epoch": 91.40625,
+   "val": 0.002021175343543291,
+   "points": 0.0024812128770953187,
+   "window": 0.00010531897625276962,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.8336635692745444e-10,
+   "energy_monotone": 6.341451530395858e-09,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005515003032856979
+  },
+  {
+   "step": 11830,
+   "epoch": 92.421875,
+   "val": 0.0020294971764087677,
+   "points": 0.002490553901029321,
+   "window": 0.000107928763687736,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.99601769145984e-10,
+   "energy_monotone": 6.75694589469736e-09,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005428048684664715
+  },
+  {
+   "step": 11960,
+   "epoch": 93.4375,
+   "val": 0.002013980643823743,
+   "points": 0.0024504647043963462,
+   "window": 0.00010536450108002799,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4987609163090122e-09,
+   "energy_monotone": 5.185774245489801e-09,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005189729293656105
+  },
+  {
+   "step": 12090,
+   "epoch": 94.453125,
+   "val": 0.0020137333776801825,
+   "points": 0.0025035869115247176,
+   "window": 0.00010179462148628843,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.126432262903688e-09,
+   "energy_monotone": 1.5179735682605207e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005110324850717846
+  },
+  {
+   "step": 12220,
+   "epoch": 95.46875,
+   "val": 0.0020121431443840265,
+   "points": 0.0024654991718797157,
+   "window": 0.00010067292062628369,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.805538891518633e-10,
+   "energy_monotone": 1.1169649376359285e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005043120889100604
+  },
+  {
+   "step": 12350,
+   "epoch": 96.484375,
+   "val": 0.0020444912370294333,
+   "points": 0.0024464345805776805,
+   "window": 9.782462299111873e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1510103852935699e-10,
+   "energy_monotone": 2.4040038020606172e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0005139541455159466
+  },
+  {
+   "step": 12480,
+   "epoch": 97.5,
+   "val": 0.0020007784478366375,
+   "points": 0.0024571573299069244,
+   "window": 0.00010075895244461627,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.793967589437993e-09,
+   "energy_monotone": 1.877088093496817e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004947263703797943
+  },
+  {
+   "step": 12610,
+   "epoch": 98.515625,
+   "val": 0.0020472658798098564,
+   "points": 0.002463532933213103,
+   "window": 0.00010014892574802685,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4680887755469385e-09,
+   "energy_monotone": 2.1685337337258275e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004903145281087535
+  },
+  {
+   "step": 12740,
+   "epoch": 99.53125,
+   "val": 0.0019962589722126722,
+   "points": 0.0024513771291822194,
+   "window": 0.00010061897225498867,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.5122066487393054e-09,
+   "energy_monotone": 2.724697030575108e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000470253861679409
+  },
+  {
+   "step": 12870,
+   "epoch": 100.546875,
+   "val": 0.0019896170124411583,
+   "points": 0.0024440543090279857,
+   "window": 0.00010192600821028464,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.8978215304298584e-09,
+   "energy_monotone": 4.388163923723973e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004764024650704904
+  },
+  {
+   "step": 13000,
+   "epoch": 101.5625,
+   "val": 0.001999865984544158,
+   "points": 0.0024643911711441785,
+   "window": 0.00010034760797190336,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.015550482954333e-10,
+   "energy_monotone": 4.50310875854836e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004782302466292794
+  },
+  {
+   "step": 13130,
+   "epoch": 102.578125,
+   "val": 0.0019837659783661366,
+   "points": 0.002443550391874921,
+   "window": 9.913749135403822e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.6639668753981595e-09,
+   "energy_monotone": 4.457980536537694e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00046608171195167906
+  },
+  {
+   "step": 13260,
+   "epoch": 103.59375,
+   "val": 0.0019840432796627283,
+   "points": 0.0024032059546488407,
+   "window": 9.534661820418059e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.7269292281774476e-09,
+   "energy_monotone": 7.942457927809019e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000455834247427097
+  },
+  {
+   "step": 13390,
+   "epoch": 104.609375,
+   "val": 0.0020077889785170555,
+   "points": 0.0024560427660337432,
+   "window": 9.817280851376171e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.7770426566152344e-09,
+   "energy_monotone": 7.670402144310859e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004506390034713639
+  },
+  {
+   "step": 13520,
+   "epoch": 105.625,
+   "val": 0.001978611573576927,
+   "points": 0.0024341500364243986,
+   "window": 0.00010043749890218561,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.142420962759091e-09,
+   "energy_monotone": 8.563329801485961e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00044790897137807824
+  },
+  {
+   "step": 13650,
+   "epoch": 106.640625,
+   "val": 0.001987699419260025,
+   "points": 0.0024408577144360887,
+   "window": 0.00010134995670971246,
+   "mach_convexity": 0.0,
+   "mass_monotone": 5.192581902065012e-09,
+   "energy_monotone": 1.0285000676007161e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004374656114333238
+  },
+  {
+   "step": 13780,
+   "epoch": 107.65625,
+   "val": 0.0019888340029865503,
+   "points": 0.0024153577548881562,
+   "window": 9.677304176595779e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.8433651578529094e-09,
+   "energy_monotone": 8.619987137414853e-08,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00044133103757093735
+  },
+  {
+   "step": 13910,
+   "epoch": 108.671875,
+   "val": 0.00199892302043736,
+   "points": 0.0024382541591946322,
+   "window": 0.00010025815124838398,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.756513961790583e-09,
+   "energy_monotone": 1.2630993612001023e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004244825932591294
+  },
+  {
+   "step": 14040,
+   "epoch": 109.6875,
+   "val": 0.0019794111140072346,
+   "points": 0.002403989600805709,
+   "window": 9.948613268744129e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.480762961978664e-09,
+   "energy_monotone": 1.4328131855788993e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004082960874746697
+  },
+  {
+   "step": 14170,
+   "epoch": 110.703125,
+   "val": 0.001968452939763665,
+   "points": 0.002397884411486582,
+   "window": 0.00010059947985260245,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.612323424324439e-09,
+   "energy_monotone": 1.3395272429412543e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00042985402217779597
+  },
+  {
+   "step": 14300,
+   "epoch": 111.71875,
+   "val": 0.001977632287889719,
+   "points": 0.0024288226501084863,
+   "window": 9.70724126650916e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.79563324690551e-09,
+   "energy_monotone": 1.715514601823383e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00044088633372806583
+  },
+  {
+   "step": 14430,
+   "epoch": 112.734375,
+   "val": 0.0019926908425986767,
+   "points": 0.002418279272611611,
+   "window": 9.771877840438929e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.815562975730031e-09,
+   "energy_monotone": 2.0654051477399558e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003851693013879972
+  },
+  {
+   "step": 14560,
+   "epoch": 113.75,
+   "val": 0.001973998500034213,
+   "points": 0.0024057414427471275,
+   "window": 9.758513691709735e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.998775016269622e-09,
+   "energy_monotone": 2.2648228628928937e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0004029365859773512
+  },
+  {
+   "step": 14690,
+   "epoch": 114.765625,
+   "val": 0.0019713856745511293,
+   "points": 0.0024328860060240215,
+   "window": 9.530225976889666e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0705329772977225e-08,
+   "energy_monotone": 2.548110712251142e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003961445530876517
+  },
+  {
+   "step": 14820,
+   "epoch": 115.78125,
+   "val": 0.0019693283829838037,
+   "points": 0.002397151709570048,
+   "window": 9.967877491502664e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.3089192055480276e-08,
+   "energy_monotone": 1.8428617019107101e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00039798927296382875
+  },
+  {
+   "step": 14950,
+   "epoch": 116.796875,
+   "val": 0.0019660256803035736,
+   "points": 0.0024129821659209065,
+   "window": 9.509531916522135e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.896929117069163e-09,
+   "energy_monotone": 2.4778940695252067e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003925703632725904
+  },
+  {
+   "step": 15080,
+   "epoch": 117.8125,
+   "val": 0.0019687924068421125,
+   "points": 0.0024099048137521516,
+   "window": 9.646985960828784e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.5227507522627694e-08,
+   "energy_monotone": 2.646171196761206e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003891544058345831
+  },
+  {
+   "step": 15210,
+   "epoch": 118.828125,
+   "val": 0.001977865118533373,
+   "points": 0.0023747596898689295,
+   "window": 9.61829532081118e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.506398596968209e-08,
+   "energy_monotone": 3.2909931825114703e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003891695361324729
+  },
+  {
+   "step": 15340,
+   "epoch": 119.84375,
+   "val": 0.0019632461480796337,
+   "points": 0.002408430348329533,
+   "window": 9.703862826707056e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4441596034896305e-08,
+   "energy_monotone": 3.3352677555075464e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00037649923481065066
+  },
+  {
+   "step": 15470,
+   "epoch": 120.859375,
+   "val": 0.0019861706532537937,
+   "points": 0.002385944700262581,
+   "window": 9.53046508164754e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4411922307051743e-08,
+   "energy_monotone": 3.5806371168580254e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000381271488731727
+  },
+  {
+   "step": 15600,
+   "epoch": 121.875,
+   "val": 0.001960995141416788,
+   "points": 0.00239670138197163,
+   "window": 9.453760016745387e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.721200196386646e-08,
+   "energy_monotone": 4.0673501166928087e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00037612503880294615
+  },
+  {
+   "step": 15730,
+   "epoch": 122.890625,
+   "val": 0.001957063563168049,
+   "points": 0.0024050825499356368,
+   "window": 9.417349182723018e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.267041261535562e-08,
+   "energy_monotone": 3.7804115740379075e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00035842574725393207
+  },
+  {
+   "step": 15860,
+   "epoch": 123.90625,
+   "val": 0.001956895226612687,
+   "points": 0.002377424248530028,
+   "window": 9.395912929903716e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.3000221910089987e-08,
+   "energy_monotone": 4.246922198529564e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00037742915592389183
+  },
+  {
+   "step": 15990,
+   "epoch": 124.921875,
+   "val": 0.0019550241995602846,
+   "points": 0.0023929194869616857,
+   "window": 9.489837958916233e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.0782914700726125e-08,
+   "energy_monotone": 4.6953867503828607e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00035742755896465565
+  },
+  {
+   "step": 16120,
+   "epoch": 125.9375,
+   "val": 0.0019571043085306883,
+   "points": 0.002391864026251894,
+   "window": 9.500786333004586e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.26711830850813e-08,
+   "energy_monotone": 5.007323258118171e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00036192847731469484
+  },
+  {
+   "step": 16250,
+   "epoch": 126.953125,
+   "val": 0.0019524488598108292,
+   "points": 0.0023920115755082898,
+   "window": 9.425008437784317e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 2.9026803610721074e-08,
+   "energy_monotone": 4.683522032217651e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00034781989603428743
+  },
+  {
+   "step": 16380,
+   "epoch": 127.96875,
+   "val": 0.001962101086974144,
+   "points": 0.0023880659020505844,
+   "window": 9.554707005288667e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.6858559339126234e-08,
+   "energy_monotone": 4.856176590380871e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00036590378664326496
+  },
+  {
+   "step": 16510,
+   "epoch": 128.984375,
+   "val": 0.001955233048647642,
+   "points": 0.0023879819504845027,
+   "window": 9.553106350582452e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 5.0402032060363585e-08,
+   "energy_monotone": 6.057628407500733e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003418677600655848
+  },
+  {
+   "step": 16640,
+   "epoch": 130.0,
+   "val": 0.001963535090908408,
+   "points": 0.0023809626653718834,
+   "window": 9.379173173398998e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.910496750132612e-08,
+   "energy_monotone": 5.542505366705155e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003514942895540466
+  },
+  {
+   "step": 16770,
+   "epoch": 131.015625,
+   "val": 0.0019655628129839897,
+   "points": 0.002381181891541928,
+   "window": 9.32871495024301e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.747192487933103e-08,
+   "energy_monotone": 5.499418338016627e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003383476013998286
+  },
+  {
+   "step": 16900,
+   "epoch": 132.03125,
+   "val": 0.0019521513022482395,
+   "points": 0.0023847261775070084,
+   "window": 9.395325939224747e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 3.432554425513306e-08,
+   "energy_monotone": 5.70729278374179e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003511449320985076
+  },
+  {
+   "step": 17030,
+   "epoch": 133.046875,
+   "val": 0.001967553747817874,
+   "points": 0.0023808141973299477,
+   "window": 9.405427386249917e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.937020092938261e-08,
+   "energy_monotone": 6.903808772799144e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003476364186029129
+  },
+  {
+   "step": 17160,
+   "epoch": 134.0625,
+   "val": 0.001951840822584927,
+   "points": 0.0023819285838936385,
+   "window": 9.431005382793955e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 4.552221756386306e-08,
+   "energy_monotone": 7.074394688482828e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000333466498593155
+  },
+  {
+   "step": 17290,
+   "epoch": 135.078125,
+   "val": 0.0019515363965183496,
+   "points": 0.00238482757883433,
+   "window": 9.430146299284668e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.271663241914382e-08,
+   "energy_monotone": 5.689997013045802e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00033155530422496107
+  },
+  {
+   "step": 17420,
+   "epoch": 136.09375,
+   "val": 0.0019490100676193833,
+   "points": 0.0023709751387986427,
+   "window": 9.351895418009147e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.595136918818429e-08,
+   "energy_monotone": 6.935561750618892e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00033273070215587863
+  },
+  {
+   "step": 17550,
+   "epoch": 137.109375,
+   "val": 0.001948619494214654,
+   "points": 0.0023682751710741566,
+   "window": 9.31140605713993e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.314062381756494e-08,
+   "energy_monotone": 6.587527465740095e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000318787740476322
+  },
+  {
+   "step": 17680,
+   "epoch": 138.125,
+   "val": 0.0019519508350640535,
+   "points": 0.002398995088879019,
+   "window": 9.44286134864132e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.271874381854715e-08,
+   "energy_monotone": 6.797296897445357e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000334837969925362
+  },
+  {
+   "step": 17810,
+   "epoch": 139.140625,
+   "val": 0.0019477060995995998,
+   "points": 0.002366213727957354,
+   "window": 9.317849365358528e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.782609017901462e-08,
+   "energy_monotone": 7.5587128922126e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003538077813573182
+  },
+  {
+   "step": 17940,
+   "epoch": 140.15625,
+   "val": 0.0019527979893609881,
+   "points": 0.0023774532126620983,
+   "window": 9.301631143898703e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.567315987734165e-08,
+   "energy_monotone": 6.926346537513476e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00031298336286384327
+  },
+  {
+   "step": 18070,
+   "epoch": 141.171875,
+   "val": 0.001951925689354539,
+   "points": 0.0023575805996258097,
+   "window": 9.358846716797696e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.9337570766518e-08,
+   "energy_monotone": 7.636932267018892e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003217010538299711
+  },
+  {
+   "step": 18200,
+   "epoch": 142.1875,
+   "val": 0.0019517659675329924,
+   "points": 0.002399866340252069,
+   "window": 9.499950560544116e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.668660705508937e-08,
+   "energy_monotone": 7.580034819718242e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003274495811918034
+  },
+  {
+   "step": 18330,
+   "epoch": 143.203125,
+   "val": 0.0019446073565632105,
+   "points": 0.0023728174578326825,
+   "window": 9.327758430467488e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 6.670471572280443e-08,
+   "energy_monotone": 8.219182991371536e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003336640032312761
+  },
+  {
+   "step": 18460,
+   "epoch": 144.21875,
+   "val": 0.0019489506958052516,
+   "points": 0.0023847084608860313,
+   "window": 9.21599306681086e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.038175130686876e-07,
+   "energy_monotone": 7.837577549356485e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00032071639087427264
+  },
+  {
+   "step": 18590,
+   "epoch": 145.234375,
+   "val": 0.00195634295232594,
+   "points": 0.00238594225822733,
+   "window": 9.227592185757553e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 9.54272856819913e-08,
+   "energy_monotone": 7.342130236163659e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00032900918528097324
+  },
+  {
+   "step": 18720,
+   "epoch": 146.25,
+   "val": 0.0019495032029226422,
+   "points": 0.0023708067368716002,
+   "window": 9.348396936100191e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 7.756141311147535e-08,
+   "energy_monotone": 7.660691071447008e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000323866417042714
+  },
+  {
+   "step": 18850,
+   "epoch": 147.265625,
+   "val": 0.0019486388191580772,
+   "points": 0.002360272334996038,
+   "window": 9.269117340758945e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 8.029772384506355e-08,
+   "energy_monotone": 8.398559709431853e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003152647003634439
+  },
+  {
+   "step": 18980,
+   "epoch": 148.28125,
+   "val": 0.0019464028300717473,
+   "points": 0.002384888153308286,
+   "window": 9.261241609167952e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0526486472489071e-07,
+   "energy_monotone": 8.646670331120714e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00031873778061708435
+  },
+  {
+   "step": 19110,
+   "epoch": 149.296875,
+   "val": 0.0019550074357539415,
+   "points": 0.002376795903994487,
+   "window": 9.292092710473718e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1718903817514325e-07,
+   "energy_monotone": 8.736554036095421e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00031291480101152465
+  },
+  {
+   "step": 19240,
+   "epoch": 150.3125,
+   "val": 0.0019473216962069273,
+   "points": 0.0023731743415387778,
+   "window": 9.266759561097178e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.0680544879414382e-07,
+   "energy_monotone": 8.764350598429343e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.0003222519455168647
+  },
+  {
+   "step": 19370,
+   "epoch": 151.328125,
+   "val": 0.0019448252860456705,
+   "points": 0.0023507474545532694,
+   "window": 9.303113984060474e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.1385349834073543e-07,
+   "energy_monotone": 8.049169761074146e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.00030992742215927974
+  },
+  {
+   "step": 19500,
+   "epoch": 152.34375,
+   "val": 0.0019443038618192077,
+   "points": 0.0023955019432693146,
+   "window": 9.355945383923917e-05,
+   "mach_convexity": 0.0,
+   "mass_monotone": 1.4174730799212088e-07,
+   "energy_monotone": 8.044052437603192e-07,
+   "range_boundary": 0.0,
+   "drag_rise": 0.000315919542649331
+  }
+ ],
+ "seed_val_losses": {
+  "0": 0.0019443038618192077,
+  "1": 0.002011038362979889,
+  "2": 0.0019795880652964115
+ }
+}

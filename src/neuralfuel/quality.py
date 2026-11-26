@@ -27,10 +27,15 @@ Checks (value, limits, pass / warn / fail):
                      record)
   protection         teacher weight of the protection against forgetting in the run
                      record; 0 fails (only with a run record)
-  drag_table         the installed aerox rebuilds the stored drag-slope table of P7
-                     of the base and of the contribution (table_sha256); otherwise
-                     the P7 values of constraint_delta use a table that the models
-                     were not trained with (only for a model with P7 settings)
+  drag_table         the contribution has the P7 settings of the base
+                     (constraints.drag_rise, without 'aerox_version', which continued
+                     training sets to the installed version), and the installed aerox
+                     rebuilds the stored drag-slope table of P7 of the base
+                     (table_sha256); with the same settings the contribution has the
+                     same table. Otherwise the P7 values of constraint_delta use a
+                     table or settings that the models were not trained with (only
+                     for a model with P7 settings). The settings are compared first,
+                     so the table of the contribution is never built
   constraint_delta   largest increase (contribution - base, percentage points) of the
                      violation rates of P1, P2, P3 on the regular constraint grid of
                      the library (neuralfuel.validate, the whole grid), of P6 at
@@ -40,7 +45,9 @@ Checks (value, limits, pass / warn / fail):
                      - 1| (%) on the cruise grid (CRUISE_GRID) inside the envelope of
                      the base and inside the declared region (without a run record:
                      inside the envelope of the base); a wrong unit or a scale factor
-                     moves the level
+                     moves the level. The row gives the number of these states
+                     ('states'); with none, the check is not measured (no value, a
+                     warning)
   region_type        share of states drawn from the declared region (or, without a
                      run record, the envelope of the contribution) with a mass outside
                      0.9 x lowest to 1.1 x highest mass of the type or a Mach above
@@ -259,6 +266,13 @@ def region_type_share(region, ac, n=N_REGION):
     return float(bad.mean())
 
 
+def p7_settings(d):
+    """The P7 settings (constraints.drag_rise) without 'aerox_version': continued
+    training records the installed aerox version, and table_sha256 already tells
+    that the table is the same."""
+    return {k: v for k, v in d.items() if k != "aerox_version"} if d else None
+
+
 def _flag(name, ok, note, value=None):
     return {
         "check": name,
@@ -323,20 +337,52 @@ def check_model(
                     value=tw,
                 )
             )
-    stored = [
-        (name, (m.constraints or {}).get("drag_rise"))
-        for name, m in (("base", base), ("contribution", contrib))
-    ]
-    stored = [(name, d) for name, d in stored if d]
-    if stored:
-        same = [stored_drag_table(d, f"{name} model")[1] for name, d in stored]
-        note = "; ".join(
-            f"{name}: table of aerox {d.get('aerox_version')} "
-            + ("reproduced" if ok else "not reproduced")
-            + f" with the installed aerox {dragmod.aerox_version()}"
-            for (name, d), ok in zip(stored, same, strict=True)
-        )
-        rows.append(_flag("drag_table", all(same), note))
+    # results of the base: kept in `cache` between calls with the same base
+    memo = {}
+    if cache is not None:
+        memo = cache.setdefault(out["base_weights_sha256"], {})
+
+    def of_base(key, fn):
+        if key not in memo:
+            memo[key] = fn()
+        return memo[key]
+
+    bd, cd = ((m.constraints or {}).get("drag_rise") for m in (base, contrib))
+    if bd or cd:
+        for name, d in (("base", bd), ("contribution", cd)):
+            if d and not d.get("table_sha256"):
+                raise ValueError(
+                    f"the drag-slope table of P7 of the {name} model cannot be "
+                    "checked: its P7 settings (constraints.drag_rise) have no "
+                    "table_sha256"
+                )
+        # the settings of the contribution are compared first: only the table of the
+        # base is rebuilt, so the contribution does not set the size of a table
+        kept = p7_settings(cd) == p7_settings(bd)
+        installed = f" with the installed aerox {dragmod.aerox_version()}"
+        notes, base_ok = [], True
+        if bd:
+            base_ok = of_base(
+                "drag_table", lambda: stored_drag_table(bd, "base model")[1]
+            )
+            notes.append(
+                f"base: table of aerox {bd.get('aerox_version')} "
+                + ("reproduced" if base_ok else "not reproduced")
+                + installed
+            )
+        same = kept and base_ok
+        if kept:  # the same table as the base (same grid and table_sha256)
+            notes.append(
+                f"contribution: table of aerox {cd.get('aerox_version')} "
+                + ("reproduced" if same else "not reproduced")
+                + installed
+            )
+        else:
+            notes.append(
+                "the P7 settings of the contribution (constraints.drag_rise) "
+                "differ from those of the base; its table was not rebuilt"
+            )
+        rows.append(_flag("drag_table", same, "; ".join(notes)))
     if not finite or diff:
         out["ok"] = False
         out["warnings"] = 0
@@ -347,16 +393,7 @@ def check_model(
     c64, s64 = _m64(contrib), _m64(base)
     env_s = base.envelope
     lc = model_loss_config(base)
-    drag = (base.constraints or {}).get("drag_rise")
-    # results of the base: kept in `cache` between calls with the same base
-    memo = {}
-    if cache is not None:
-        memo = cache.setdefault(out["base_weights_sha256"], {})
-
-    def of_base(key, fn):
-        if key not in memo:
-            memo[key] = fn()
-        return memo[key]
+    drag = bd
 
     # constraint grid: violations and smoothness
     p, _ = constraint_grid(_grid(), ValidationConfig(), envelope(ac, lc))
@@ -405,23 +442,26 @@ def check_model(
     xc = level_inputs(M, A, W, dT, sg, acc)
     ins = in_envelope(env_s, xc)
     sel = ins & in_envelope(declared, xc) if declared is not None else ins
-    if not sel.any():
-        sel = ins
     ratio = np.exp(_ln(c64, xc) - of_base("ln_cruise", lambda: _ln(s64, xc)))
     out["finite_outputs"] = bool(np.isfinite(ratio).all())
     if not out["finite_outputs"]:
         rows[0].update(
             value=False, status="fail", note="outputs with NaN or infinite values"
         )
+    where = "the base envelope" + (
+        " and the declared region" if declared is not None else ""
+    )
     if sel.any():
         med = float(np.median(ratio[sel]))
         note = (
             f"median fuel flow contribution / base {med:.4f} at {int(sel.sum())} "
-            "cruise grid states"
+            f"cruise grid states inside {where}"
         )
         rows.append(_row("fuel_level", 100 * abs(med - 1), note))
     else:
-        rows.append(_row("fuel_level", None, "no cruise grid state inside the base"))
+        note = f"not measured: no cruise grid state inside {where}"
+        rows.append(_row("fuel_level", None, note))
+    rows[-1]["states"] = int(sel.sum())
 
     # declared region
     region = declared if declared is not None else contrib.envelope

@@ -43,7 +43,7 @@ import pandas as pd
 from . import atmos
 from .atmos import FT, G0, GAMMA, P0, T0
 from .prep import FEATURES
-from .privacy import NUM, STR
+from .privacy import NUM, Nums, allowed, enum
 
 ENVELOPE_FORMAT = "neuralfuel-envelope-1"
 ENVELOPE_VARS = ("mach", "alt_ft", "mass_kg", "wd_t", "dT_isa_k", "sin_gamma", "acc_in")
@@ -51,13 +51,40 @@ PHASES = ("all", "climb", "level", "descent")
 BOX_RTOL = 1e-9  # tolerance of the box bounds, relative to max(1, |bound|)
 # the keys of an envelope (format of neuralfuel.privacy.allowed)
 ENVELOPE = {
-    "format": STR,
-    "quantiles": NUM,
+    "format": enum(ENVELOPE_FORMAT),
+    "quantiles": Nums(2, exact=True),
     "phase_rule": {"level_fpm": NUM, "cruise_alt_ft": NUM},
-    "phases": {p: {"blocks": NUM, **dict.fromkeys(ENVELOPE_VARS, NUM)} for p in PHASES},
+    "phases": {
+        p: {"blocks": NUM, **dict.fromkeys(ENVELOPE_VARS, Nums(2, exact=True))}
+        for p in PHASES
+    },
     "cruise": {"windows": NUM, "max_wd_t": NUM, "max_cl": NUM},
     "wing_area_m2": NUM,
 }
+
+
+def envelope_problems(env) -> list:
+    """Reasons why env is not a complete envelope of ENVELOPE (empty if it is)."""
+    if not isinstance(env, dict):
+        return ["not an object"]
+    out = [f"{p} has another shape" for p in allowed(env, ENVELOPE, "envelope")[1]]
+    rule, cruise = env.get("phase_rule"), env.get("cruise")
+    if not isinstance(rule, dict) or None in (
+        rule.get(k) for k in ENVELOPE["phase_rule"]
+    ):
+        out.append("phase_rule is missing")
+    if not isinstance(env.get("phases"), dict):
+        out.append("phases is missing")
+    else:
+        for p, box in env["phases"].items():
+            if not isinstance(box, dict) or any(
+                k not in box or (box.get("blocks") and box[k] is None)
+                for k in ENVELOPE["phases"]["all"]
+            ):
+                out.append(f"phases.{p} is incomplete")
+    if not isinstance(cruise, dict) or any(k not in cruise for k in ENVELOPE["cruise"]):
+        out.append("cruise is missing")
+    return out
 
 
 def lift_coefficient(mass_kg, mach, delta, wing_area_m2):

@@ -11,9 +11,11 @@ import argparse
 import dataclasses
 import hashlib
 import json
+import os
 import shutil
 import sys
 import tempfile
+import traceback
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +23,7 @@ import pandas as pd
 from . import __version__
 
 EXIT_OK, EXIT_FAIL, EXIT_INPUT, EXIT_ERROR = 0, 1, 2, 3
+MAX_JSON_BYTES = 16 * 2**20  # largest run record, report or prep.json that is read
 
 
 class InputError(Exception):
@@ -39,11 +42,119 @@ class Parser(argparse.ArgumentParser):
 
 
 def read_json(path, name=None):
-    """The JSON file at path; InputError if it is not valid JSON."""
+    """The JSON object in the file at path; InputError if the file is larger than
+    MAX_JSON_BYTES, is not valid JSON or its root is not an object."""
+    name = name or path
+    if Path(path).stat().st_size > MAX_JSON_BYTES:
+        raise InputError(f"{name}: larger than {MAX_JSON_BYTES} bytes")
     try:
-        return json.loads(Path(path).read_text())
+        obj = json.loads(Path(path).read_text())
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        raise InputError(f"{name or path}: not a JSON file ({e})") from e
+        raise InputError(f"{name}: not a JSON file ({e})") from e
+    if not isinstance(obj, dict):
+        raise InputError(
+            f"{name}: the JSON root must be an object, not a list or value"
+        )
+    return obj
+
+
+def read_run_record(path, name=None):
+    """The run record at path (read_json); InputError if a part that the checks read
+    has another shape: 'protection' an object with a numeric teacher weight, the
+    envelopes 'local_envelope' and 'envelope' complete envelopes, the counts numbers
+    (neuralfuel.support.envelope_problems)."""
+    from .support import envelope_problems
+
+    name = name or path
+    rec = read_json(path, name)
+    prot = rec.get("protection")
+    if prot is not None and not (
+        isinstance(prot, dict) and _number_or_none(prot.get("teacher_weight"))
+    ):
+        raise InputError(f"{name}: 'protection' is not an object with a teacher weight")
+    for k in ("n_train_blocks", "n_train_windows"):
+        if not _number_or_none(rec.get(k)):
+            raise InputError(f"{name}: '{k}' is not a number")
+    for k in ("local_envelope", "envelope"):
+        if rec.get(k) is not None and envelope_problems(rec[k]):
+            raise InputError(
+                f"{name}: '{k}' is not an envelope: "
+                + "; ".join(envelope_problems(rec[k]))
+            )
+    return rec
+
+
+def _number_or_none(v):
+    return v is None or (isinstance(v, (int, float)) and not isinstance(v, bool))
+
+
+def same_file(a, b) -> bool:
+    """True if the paths a and b name the same file (resolved paths; samefile for
+    existing files)."""
+    a, b = Path(a), Path(b)
+    try:
+        if a.exists() and b.exists():
+            return a.samefile(b)
+    except OSError:
+        pass
+    return a.resolve() == b.resolve()
+
+
+def check_outputs(outputs, inputs):
+    """InputError if an output file is one of the input files (before any work)."""
+    for o in outputs:
+        for i in inputs:
+            if i is not None and same_file(o, i):
+                raise InputError(
+                    f"the output {o} is the input file {i}; give another output path"
+                )
+
+
+def prep_files(d):
+    return [Path(d) / n for n in ("blocks.parquet", "windows.parquet", "prep.json")]
+
+
+def _named_in(source, key) -> bool:
+    """True if key is a column name of the schema or a string literal in the file
+    source (the column names that an adapter asks for)."""
+    from .schema import BY_NAME
+
+    if key in BY_NAME:
+        return True
+    try:
+        text = Path(source).read_text()
+    except (OSError, TypeError, UnicodeDecodeError):
+        return False
+    return f'"{key}"' in text or f"'{key}'" in text
+
+
+def data_error(e, operation, source=None):
+    """InputError for an exception raised while reading or converting the user data.
+    The message holds the class of the exception, the operation and the place (the
+    function and line of the innermost frame in the file `source`, else of the
+    innermost frame), never the message of the exception, which can hold a value of
+    the data. A KeyError names its key (a missing column) only if the key is a column
+    name of the schema or a string literal in `source`, so never a value that only
+    the data holds."""
+    frames = traceback.extract_tb(e.__traceback__)
+    src = os.path.realpath(source) if source else None
+    inner = [f for f in frames if src and os.path.realpath(f.filename) == src]
+    if inner:
+        where = f" in {inner[-1].name}, line {inner[-1].lineno} of the adapter"
+    elif frames:
+        f = frames[-1]
+        where = f" in {f.name}, line {f.lineno} of {Path(f.filename).name}"
+    else:
+        where = ""
+    column = None
+    if isinstance(e, KeyError) and e.args and isinstance(e.args[0], str):
+        if source is not None and _named_in(source, e.args[0]):
+            column = e.args[0]
+    msg = f"{operation} failed: {type(e).__name__}{where}"
+    if column is not None:
+        msg += f": column '{column}' not found"
+    msg += " (the message of the error is not shown: it can hold a value of the data)"
+    return InputError(msg, column)
 
 
 # ---------------------------------------------------------------- helpers
@@ -59,7 +170,10 @@ def load_samples(args, raw=False):
     if not Path(data).exists():
         raise InputError(f"data file not found: {data}")
     if raw:
-        return read_table(data), "raw"
+        try:
+            return read_table(data), "raw"
+        except Exception as e:  # noqa: BLE001
+            raise data_error(e, "reading the raw file") from None
     try:
         fn = get_adapter(adapter)
     except KeyError as e:
@@ -68,12 +182,9 @@ def load_samples(args, raw=False):
         raise InputError(str(e)) from e
     try:
         return fn(data), adapter
-    except KeyError as e:
-        raise InputError(
-            f"adapter '{adapter}': raw column {e} not found", str(e)
-        ) from e
-    except Exception as e:
-        raise InputError(f"adapter '{adapter}' failed: {e}") from e
+    except Exception as e:  # noqa: BLE001
+        source = getattr(getattr(fn, "__code__", None), "co_filename", None)
+        raise data_error(e, f"adapter '{adapter}'", source) from None
 
 
 def load_prepared(d):
@@ -250,6 +361,7 @@ def cmd_check(args):
 
 
 def cmd_prep(args):
+    from .config import resolve
     from .prep import PrepConfig, check_config, prepare
     from .privacy import dumps
     from .schema import SchemaError
@@ -260,6 +372,8 @@ def cmd_prep(args):
         check_config(cfg)
     except ValueError as e:
         raise InputError(str(e)) from e
+    data = resolve(args.data, args.adapter)[0]
+    check_outputs(prep_files(args.out), [data] if data else [])
     df, used = load_samples(args)
     try:
         blocks, windows, summary = prepare(df, cfg)
@@ -342,6 +456,8 @@ def cmd_train(args):
         )
         args.aircraft = args.engine = None
     cfg = train_config(args)
+    out_files = [Path(args.out) / "model.pt", Path(args.out) / "run.json"]
+    check_outputs(out_files, [args.init, *prep_files(args.prep)])
     if args.no_protect:
         cfg.loss.teacher = 0.0
     log = train_log(args)
@@ -379,7 +495,7 @@ def _release_run(blocks, windows, cfg, prep_cfg):
 def cmd_release(args):
     """Train both sizes (best seed by validation loss), validate and export."""
     from .aircraft import SIZES, model_name
-    from .inference import export_onnx
+    from .inference import export_onnx, onnx_agrees
     from .model import save
     from .privacy import dumps
     from .train import train
@@ -471,7 +587,7 @@ def cmd_release(args):
             f"{info['max_rel_diff_ff']:.1e}"
         )
     text += [f"note: {n}" for n in notes]
-    ok = all(r["onnx_max_rel_diff_ff"] < 1e-4 for r in res.values())
+    ok = all(onnx_agrees(r["onnx_max_rel_diff_ff"]) for r in res.values())
     return (
         (EXIT_OK if ok else EXIT_FAIL),
         {"models": res, "notes": notes},
@@ -488,6 +604,7 @@ def cmd_validate(args):
 
     positive("--threads", args.threads)
     torch.set_num_threads(args.threads)
+    check_outputs([args.out], [args.model, *prep_files(args.prep)])
     blocks, windows, prep_cfg = load_prepared(args.prep)
     model = load_weights(args.model)
     ac = aircraft(args.aircraft, args.engine or "") if args.aircraft else None
@@ -547,14 +664,15 @@ def cmd_validate(args):
 
 
 def cmd_export(args):
-    from .inference import export_onnx
+    from .inference import export_onnx, onnx_agrees
 
     model = load_weights(args.model)
+    check_outputs([args.out], [args.model])
     try:
         info = export_onnx(model, args.out, casadi=args.casadi)
     except ValueError as e:  # a model that overflows in the --casadi form
         raise InputError(str(e)) from e
-    ok = info["max_rel_diff_ff"] < 1e-4
+    ok = onnx_agrees(info["max_rel_diff_ff"])
     text = (
         f"wrote {info['path']} (ops {', '.join(info['ops'])}); ONNX against PyTorch on "
         f"{info['n_check']} inputs: max relative fuel-flow difference "
@@ -565,10 +683,10 @@ def cmd_export(args):
 
 def cmd_contribute(args):
     from .aggregate import run_record_problems
-    from .inference import export_onnx
-    from .losses import CONSTRAINT_SETTINGS, DRAG_RISE
+    from .inference import export_onnx, onnx_agrees
+    from .losses import CONSTRAINTS
     from .model import load, read_meta, save, state_hash
-    from .privacy import NUM, allowed, dumps, find_identifiers
+    from .privacy import CODE, CODE_OR_EMPTY, allowed, dumps, find_identifiers
     from .support import ENVELOPE
     from .train import RUN_RECORD
     from .validate import REPORT
@@ -588,12 +706,13 @@ def cmd_contribute(args):
             f"{out}: the destination exists and is not empty; give a new or empty "
             "folder"
         )
-    rec = read_json(src["run.json"], "run.json")
+    rec = read_run_record(src["run.json"], "run.json")
     rep = read_json(src["validation.json"], "validation.json")
     hits = find_identifiers(rec, path="run.json") + find_identifiers(
         rep, path="validation.json"
     )
-    # the shared records hold only the keys of their formats
+    # the shared records hold only the keys of their formats, with values of the
+    # declared shapes; the paths of the dropped entries stay in the local output
     rec, dropped = allowed(rec, RUN_RECORD, "run.json")
     rep, d = allowed(rep, REPORT, "validation.json")
     dropped += d
@@ -609,6 +728,12 @@ def cmd_contribute(args):
             f"--splits test); it evaluated {rep.get('evaluated_splits')}"
         )
     model = load_weights(src["model.pt"])
+    ac = model.aircraft
+    if ac is not None and not (CODE.ok(ac.type) and CODE_OR_EMPTY.ok(ac.engine)):
+        raise InputError(
+            "model.pt: the aircraft type and the engine family must be codes of lower "
+            "case letters, digits and '_' (at most 16 characters)"
+        )
     h = state_hash(model)
     if (rep.get("model") or {}).get("weights_sha256") != h:
         raise InputError(
@@ -619,8 +744,9 @@ def cmd_contribute(args):
         model.envelope, d = allowed(model.envelope, ENVELOPE, "model.pt.envelope")
         dropped += d
     if model.constraints is not None:
-        spec = dict.fromkeys(CONSTRAINT_SETTINGS, NUM) | {"drag_rise": DRAG_RISE}
-        model.constraints, d = allowed(model.constraints, spec, "model.pt.constraints")
+        model.constraints, d = allowed(
+            model.constraints, CONSTRAINTS, "model.pt.constraints"
+        )
         dropped += d
     meta = read_meta(src["model.pt"])
     dropped += [f"model.pt.meta.{k}" for k in meta if k not in HASH_KEYS]
@@ -661,13 +787,13 @@ def cmd_contribute(args):
             "evaluated_splits": rep["evaluated_splits"],
             "summary": summary,
             "onnx_max_rel_diff_ff": info["max_rel_diff_ff"],
-            "dropped_fields": dropped,
+            "dropped_field_count": len(dropped),  # the paths only in the local output
         }
         (stage / "MANIFEST.json").write_text(dumps(manifest))
-        if info["max_rel_diff_ff"] >= 1e-4:
+        if not onnx_agrees(info["max_rel_diff_ff"]):
             return (
                 EXIT_FAIL,
-                {"ok": False, **manifest},
+                {"ok": False, **manifest, "dropped_fields": dropped},
                 f"the ONNX file differs from PyTorch ({info['max_rel_diff_ff']:.1e})",
             )
         if out.exists():
@@ -681,11 +807,24 @@ def cmd_contribute(args):
         "to a pull request"
     )
     if dropped:
-        text += "\ndropped fields (not in the record formats): " + ", ".join(dropped)
-    return EXIT_OK, {"ok": True, "out": str(out), **manifest}, text
+        text += (
+            f"\n{len(dropped)} dropped fields (not in the record formats, or a value "
+            "of another shape; this list is not in the folder): " + ", ".join(dropped)
+        )
+    res = {"ok": True, "out": str(out), **manifest, "dropped_fields": dropped}
+    return EXIT_OK, res, text
 
 
 HASH_KEYS = ("weights_sha256", "init_weights_sha256")  # the meta of a shared model
+
+
+def contribution_record_path(p):
+    """The run record of the weights file p: run.json next to a file named
+    model.pt, else <stem>.run.json."""
+    p = Path(p)
+    return (
+        p.with_name("run.json") if p.name == "model.pt" else p.with_suffix(".run.json")
+    )
 
 
 def contribution_files(path):
@@ -696,13 +835,8 @@ def contribution_files(path):
     if p.is_dir():
         w, r = p / "model.pt", p / "run.json"
     else:
-        w = p
-        r = (
-            p.with_name("run.json")
-            if p.name == "model.pt"
-            else p.with_suffix(".run.json")
-        )
-    rec = read_json(r) if r.exists() else None
+        w, r = p, contribution_record_path(p)
+    rec = read_run_record(r) if r.exists() else None
     return w, rec
 
 
@@ -713,6 +847,7 @@ def cmd_merge(args):
         differences,
         duplicates,
         finite_state,
+        merge_record_path,
         run_record_problems,
         save_merged,
     )
@@ -721,6 +856,13 @@ def cmd_merge(args):
     from .support import union_envelope
 
     positive("--threads", args.threads)
+    out = Path(args.out)
+    inputs = [args.base]
+    for c in args.contributions:
+        p = Path(c)
+        w = p / "model.pt" if p.is_dir() else p
+        inputs += [w, p / "run.json" if p.is_dir() else contribution_record_path(p)]
+    check_outputs([out, merge_record_path(out)], inputs)
     base = load_weights(args.base)
     h_base = state_hash(base)
     models, recs = [], []
@@ -779,7 +921,6 @@ def cmd_merge(args):
         quality = check_model(model, base, declared=union_envelope(*regions))
     except ValueError as e:  # for example a base without an envelope
         quality = {"ok": None, "error": str(e), "checks": [], "warnings": 0}
-    out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     _, mr = save_merged(model, rec, out, quality)
     text = (
@@ -787,21 +928,23 @@ def cmd_merge(args):
         "weights " + ", ".join(f"{c['weight']:.3f}" for c in rec["contributions"])
     )
     text += "\nquality check of the merged model against the base: " + (
-        f"not run: {quality['error']}"
+        f"NOT RUN: {quality['error']}; the merged model is unchecked"
         if quality["ok"] is None
         else "passed"
         + (f" with {quality['warnings']} warnings" if quality.get("warnings") else "")
         if quality["ok"]
         else "FAILED (see quality_check in the merge record)"
     )
-    res = {"ok": True, "out": str(out), "merge_record": str(mr), **rec}
+    checked = quality["ok"] is not None
+    res = {"ok": checked, "out": str(out), "merge_record": str(mr), **rec}
     res["quality_check"] = quality
-    return EXIT_OK, res, text
+    return (EXIT_OK if checked else EXIT_FAIL), res, text
 
 
 def cmd_local_fit(args):
     from .local import fit_offsets, write_offsets
 
+    check_outputs([args.out], [args.model, *prep_files(args.prep)])
     blocks, _, prep_cfg = load_prepared(args.prep)
     model = load_weights(args.model)
     try:
@@ -825,7 +968,7 @@ def cmd_check_model(args):
     if args.run:
         if not Path(args.run).exists():
             raise InputError(f"run record not found: {args.run}")
-        rec = read_json(args.run)
+        rec = read_run_record(args.run)
     else:
         rec = contribution_files(args.model)[1]
         if rec is None:
@@ -1184,6 +1327,13 @@ def parser():
     return p
 
 
+def reads_data(args):
+    """True for a command that reads the samples of the user."""
+    return args.cmd in ("profile", "check", "prep") or bool(
+        getattr(args, "surveillance", False)
+    )
+
+
 def main(argv=None):
     from .privacy import dumps
 
@@ -1209,11 +1359,10 @@ def main(argv=None):
             f"error: {e}",
         )
     except Exception as e:  # noqa: BLE001
-        code, out, text = (
-            EXIT_ERROR,
-            {"ok": False, "error": f"{type(e).__name__}: {e}"},
-            f"error: {type(e).__name__}: {e}",
-        )
+        msg = f"{type(e).__name__}: {e}"
+        if reads_data(args):  # the message can hold a value of the data
+            msg = str(data_error(e, f"'{args.cmd}'"))
+        code, out, text = EXIT_ERROR, {"ok": False, "error": msg}, f"error: {msg}"
     if args.json:
         out = {"command": args.cmd, "exit_code": code, "ok": code == EXIT_OK, **out}
         print(dumps(out, indent=None))

@@ -51,7 +51,7 @@ You contribute a model, not data. You train on your own flight data on your own 
    uv run neuralfuel contribute --run work/run --report work/run/validation.json --out work/share
    ```
 
-   `work/share` must be a new or empty folder. The command writes the ONNX file itself, from the verified weights. It copies only the keys of the record formats into `run.json` and `validation.json` and lists every key it drops (`dropped_fields`). The command stops with exit code 1 if the run record or the validation report contains a field that looks like an identifier, a date or a position. It stops with exit code 2 if the folder is not empty, if the report is not of the test split only, or if the report or the run record belongs to other weights.
+   `work/share` must be a new or empty folder. The command writes the ONNX file itself, from the verified weights. It copies only the keys of the record formats, with values of the declared shapes, into `run.json` and `validation.json`, and lists the path of every field it drops in its output (`dropped_fields`). The list stays on your computer; `MANIFEST.json` holds only the number of dropped fields. The command stops with exit code 1 if the run record or the validation report contains a field that looks like an identifier, a date or a position. It stops with exit code 2 if the folder is not empty, if the report is not of the test split only, or if the report or the run record belongs to other weights.
 
 9. Open a pull request. Put the files of `work/share` in a new folder `contributions/<short neutral name>/`. The `.gitignore` keeps `.pt` and `.onnx` files in `contributions/` tracked. Fill in the checklist of the pull request template.
 
@@ -84,9 +84,9 @@ Each check gives a value, a warning limit, a failure limit and a status. The tab
 - `compatible` (yes or no): same architecture, inputs, temperature rule, aircraft settings and standardization as the base.
 - `base` (yes or no): the run record names the base model.
 - `protection` (teacher weight): the protection against forgetting was on; 0 fails.
-- `drag_table` (yes or no): the installed aerox rebuilds the drag table of P7 of the base and of your model. Only for a model with P7 settings.
+- `drag_table` (yes or no): your model has the P7 settings of the base (the aerox version is not compared), and the installed aerox rebuilds the drag table of P7 of the base. Only for a model with P7 settings.
 - `constraint_delta` (percentage points): increase of the violation rates of the physical constraints.
-- `fuel_level` (%): median fuel-flow difference to the base in steady cruise inside your data region.
+- `fuel_level` (%): median fuel-flow difference to the base in steady cruise inside your data region. Without a cruise state inside the base envelope and your data region it is not measured (a warning).
 - `region_type` (fraction): share of your data region with a mass or Mach outside the range of the type.
 - `change_outside_mean`, `change_outside_max` (%): change of fuel flow outside your data region.
 - `outside_states` (number): test states outside your data region; few states make the two checks above weak and give a warning.
@@ -97,7 +97,7 @@ Each check gives a value, a warning limit, a failure limit and a status. The tab
 What to do:
 
 - `finite`, `compatible`, `base`, `protection`: train again from the shared model with `--init`, without `--no-protect` and without `--set temperature=...` or aircraft settings.
-- `drag_table`: install the aerox version of the shared model that the note names and run the check again.
+- `drag_table`: if the note says that a table is not reproduced, install the aerox version of the shared model that the note names and run the check again. If the note says that the P7 settings differ, train again with `--init` from the shared model.
 - `fuel_level`, `region_type`: check the units and scale factors of your adapter with `neuralfuel check`. Mass in pounds and fuel flow in another unit are the usual causes.
 - the other checks: the training moved the model far from the base. Check the protection and the step budget.
 
@@ -133,7 +133,7 @@ The maintainers need no flight data for the review.
    uv run neuralfuel merge contributions/NAME1 contributions/NAME2 --base models/a320/nf-a320-cfm56_5b.pt --out next/nf-a320-cfm56_5b.pt
    ```
 
-   `merge` writes the weights `next/nf-a320-cfm56_5b.pt` and the merge record `next/nf-a320-cfm56_5b.merge.json`: the method, the hashes of the base and of the contributions, the weights, the union envelope and the result of the quality check of the merged model against the base. Exit code 1 means a contribution was refused; the output names the reason. `--method combine` trains a student instead of averaging the weights (about 10 minutes on a CPU).
+   `merge` writes the weights `next/nf-a320-cfm56_5b.pt` and the merge record `next/nf-a320-cfm56_5b.merge.json`: the method, the hashes of the base and of the contributions, the weights, the union envelope and the result of the quality check of the merged model against the base. Exit code 1 means a contribution was refused (the output names the reason) or the quality check of the merged model could not run (the output says that the merged model is unchecked; do not release it). `--method combine` trains a student instead of averaging the weights (about 10 minutes on a CPU).
 
 5. Export the merged model to ONNX.
 

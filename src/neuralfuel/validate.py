@@ -19,19 +19,31 @@ import torch
 
 from . import __version__, atmos
 from . import drag as dragmod
-from .aircraft import Aircraft, model_name, size_of
+from .aircraft import SIZES, Aircraft, model_name, size_of
 from .losses import (
-    CONSTRAINT_SETTINGS,
-    DRAG_RISE,
+    CONSTRAINTS,
     LossConfig,
     constraint_settings,
     envelope,
     model_loss_config,
     p6_band,
 )
-from .model import FuelFlowNet, state_hash
+from .model import TEMPERATURE_RULES, FuelFlowNet, state_hash
 from .prep import FEATURES, PrepConfig, derive
-from .privacy import NUM, NUM_KEY, STR, clean_json
+from .privacy import (
+    CODE,
+    CODE_OR_EMPTY,
+    NUM,
+    NUM_KEY,
+    SHA256,
+    VERSION,
+    Nums,
+    Text,
+    clean_json,
+    enum,
+    number_text,
+    settings_spec,
+)
 from .support import ENVELOPE, data_envelope, in_envelope
 
 REPORT_FORMAT = "neuralfuel-validation-2"
@@ -299,15 +311,22 @@ def max_specific_range(model, cells, cfg: ValidationConfig, ac: Aircraft):
     return rows
 
 
+TEMPERATURE_POINTS = (
+    "median of the steady windows",
+    "median of the cruise blocks",
+    "no cruise data",
+)
+
+
 def temperature_point(windows, blocks):
     """(pressure altitude, mass, source) of the temperature test: the medians of the
     steady windows, or of the cruise blocks if there are no windows."""
     if len(windows):
-        t, src = windows, "median of the steady windows"
+        t, src = windows, TEMPERATURE_POINTS[0]
     else:
-        t, src = blocks[blocks.cruise.astype(bool)], "median of the cruise blocks"
+        t, src = blocks[blocks.cruise.astype(bool)], TEMPERATURE_POINTS[1]
     if len(t) == 0:
-        return None, None, "no cruise data"
+        return None, None, TEMPERATURE_POINTS[2]
     return float(t.alt_ft.median()), float(t.mass_kg.median()), src
 
 
@@ -682,7 +701,7 @@ def noise_sensitivity(model, te, cfg: ValidationConfig):
             "alt_ft": cfg.noise_alt_ft,
             "mass_rel": cfg.noise_mass_rel,
             "energy_rate": cfg.noise_energy,
-            "energy_split": "independent SD/sqrt(2) on sin_gamma and on acc_in",
+            "energy_split": ENERGY_SPLIT,
             "sat_k": cfg.noise_sat_k,
         },
     }
@@ -763,11 +782,8 @@ def surveillance_test(model, te, samples, cfg: ValidationConfig, prep_config=Non
     p_ref = np.exp(predict_ln(model, t))
     p_s = np.exp(predict_ln(model, xs[ok].reset_index(drop=True)))
     return {
-        "variant": (
-            f"Mode S at 1 Hz: Mach rounded to {cfg.mode_s_mach:g}, pressure altitude "
-            f"to {cfg.mode_s_alt_ft:g} ft, groundspeed to {cfg.mode_s_gs_kt:g} kt, "
-            "temperature unchanged; the schema has no wind, so airspeed from "
-            "groundspeed and wind is not tested"
+        "variant": SURVEILLANCE_VARIANT.format(
+            f"{cfg.mode_s_mach:g}", f"{cfg.mode_s_alt_ft:g}", f"{cfg.mode_s_gs_kt:g}"
         ),
         "blocks": int(ok.sum()),
         "blocks_without_inputs": int((~ok).sum()),
@@ -776,15 +792,24 @@ def surveillance_test(model, te, samples, cfg: ValidationConfig, prep_config=Non
     }
 
 
+ENERGY_SPLIT = "independent SD/sqrt(2) on sin_gamma and on acc_in"
+SURVEILLANCE_VARIANT = (
+    "Mode S at 1 Hz: Mach rounded to {}, pressure altitude to {} ft, groundspeed to "
+    "{} kt, temperature unchanged; the schema has no wind, so airspeed from "
+    "groundspeed and wind is not tested"
+)
+ENVELOPE_SOURCES = ("model file", "training split of the validated data")
+
+
 def envelope_section(model, te, tr, tr_windows, ac, prep_config=None):
     """The valid envelope of the model (from the file, or from the training split of
     the validated data) and the share of the evaluated blocks outside it."""
-    env, src = model.envelope, "model file"
+    env, src = model.envelope, ENVELOPE_SOURCES[0]
     if env is None:
         pc = prep_config or PrepConfig()
         rule = {"level_fpm": pc.level_fpm, "cruise_alt_ft": pc.cruise_alt_ft}
         env = data_envelope(tr, tr_windows, ac.wing_area_m2, **rule)
-        src = "training split of the validated data"
+        src = ENVELOPE_SOURCES[1]
     inside = in_envelope(env, te[FEATURES])
     out = {"source": src, "evaluated_outside_pct": {}}
     for p in ("all", "climb", "level", "descent"):
@@ -960,15 +985,6 @@ def validate(
     return clean_json(report)
 
 
-def _fields(cls):
-    """Format (neuralfuel.privacy) of the fields of a settings dataclass."""
-    import dataclasses
-
-    return {
-        f.name: STR if f.type in (str, "str") else NUM for f in dataclasses.fields(cls)
-    }
-
-
 _ACC = dict.fromkeys(("n", "MAPE_pct", "rRMSE_pct", "bias_pct"), NUM)
 _PHASES = ("all", "climb", "level", "descent")
 _COVERAGE = {
@@ -985,19 +1001,18 @@ _COVERAGE = {
                 "p50",
                 "p99",
                 "max",
-                "bin_edges",
-                "counts",
                 "below_first_edge",
                 "above_last_edge",
             ),
             NUM,
         )
+        | dict.fromkeys(("bin_edges", "counts"), Nums(64))
         for k in COVERAGE_VARS
     },
 }
 _PAIR = {
-    "flights_used": STR,
-    "splits": STR,
+    "flights_used": enum(*(text for _, text in PAIR_SETS.values())),
+    "splits": [enum(*SPLITS)],
     **dict.fromkeys(
         (
             "pairs",
@@ -1015,26 +1030,25 @@ _PAIR = {
 _SR = {"mach_max_sr": NUM, "at_upper_bound": NUM, "n_local_max": NUM}
 # the keys of the report (format of neuralfuel.privacy.allowed)
 REPORT = {
-    "format": STR,
-    "neuralfuel_version": STR,
+    "format": enum(REPORT_FORMAT),
+    "neuralfuel_version": VERSION,
     "model": {
-        "weights_sha256": STR,
+        "weights_sha256": SHA256,
         "n_params": NUM,
-        "features": STR,
-        "temperature": STR,
+        "features": [enum(*FEATURES)],
+        "temperature": enum(*TEMPERATURE_RULES),
         "theta_exp": NUM,
-        "size": STR,
+        "size": enum(*SIZES, "custom"),
         "aircraft": {
-            **dict.fromkeys(
-                ("mmo", "vmo_kt", "mass_kg", "alt_ft", "wing_area_m2"), NUM
-            ),
-            "type": STR,
-            "engine": STR,
+            **dict.fromkeys(("mmo", "vmo_kt", "wing_area_m2"), NUM),
+            **dict.fromkeys(("mass_kg", "alt_ft"), Nums(2, exact=True)),
+            "type": CODE,
+            "engine": CODE_OR_EMPTY,
         },
         "aircraft_from_file": NUM,
-        "name": STR,
+        "name": Text(r"nf(-[a-z0-9_]{1,16}){1,2}(-xs)?"),
     },
-    "evaluated_splits": STR,
+    "evaluated_splits": [enum(*SPLITS)],
     "accuracy": dict.fromkeys((*_PHASES, "cruise"), _ACC),
     "trip_fuel": dict.fromkeys(
         ("flights", "median_abs_error_pct", "mean_bias_pct", "median_bias_pct"), NUM
@@ -1068,7 +1082,7 @@ REPORT = {
         | _SR
     ],
     "temperature_test": {
-        "point": STR,
+        "point": enum(*TEMPERATURE_POINTS),
         "alt_ft": NUM,
         "mass_kg": NUM,
         "rows": [{"dT_isa_k": NUM, "sat_k": NUM} | _SR],
@@ -1095,7 +1109,6 @@ REPORT = {
             **dict.fromkeys(
                 (
                     "points",
-                    "mach",
                     "cl_max",
                     "tolerance",
                     "violation_pct",
@@ -1104,14 +1117,15 @@ REPORT = {
                 ),
                 NUM,
             ),
-            "aerox_version": STR,
+            "mach": Nums(2, exact=True),
+            "aerox_version": VERSION,
         },
     },
     "roughness": {
-        "coordinates": STR,
+        "coordinates": [enum(*STATE_NAMES)],
+        "sd": Nums(len(STATE_NAMES)),
         **dict.fromkeys(
             (
-                "sd",
                 "points",
                 "inside_support",
                 "mean_hessian_frobenius_inside",
@@ -1148,22 +1162,21 @@ REPORT = {
             **dict.fromkeys(
                 ("mach", "alt_ft", "mass_rel", "energy_rate", "sat_k"), NUM
             ),
-            "energy_split": STR,
+            "energy_split": enum(ENERGY_SPLIT),
         },
         **{f"rms_rel_change_pct_{k}": NUM for k in (*NOISE_INPUTS, "joint")},
     },
     "envelope": {
-        "source": STR,
+        "source": enum(*ENVELOPE_SOURCES),
         "evaluated_outside_pct": dict.fromkeys(_PHASES, NUM),
         "description": ENVELOPE,
     },
     "coverage": {"evaluated": _COVERAGE, "train": _COVERAGE},
-    "config": _fields(ValidationConfig),
-    "constraint_settings": dict.fromkeys(CONSTRAINT_SETTINGS, NUM)
-    | {"drag_rise": DRAG_RISE},
-    "prep": _fields(PrepConfig),
+    "config": settings_spec(ValidationConfig),
+    "constraint_settings": CONSTRAINTS,
+    "prep": settings_spec(PrepConfig),
     "surveillance": {
-        "variant": STR,
+        "variant": number_text(SURVEILLANCE_VARIANT),
         "blocks": NUM,
         "blocks_without_inputs": NUM,
         "recorded_inputs": dict.fromkeys((*_PHASES, "cruise"), _ACC),

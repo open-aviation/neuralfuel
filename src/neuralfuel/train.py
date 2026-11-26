@@ -38,7 +38,7 @@ import torch
 import torch.nn.functional as F
 
 from . import __version__
-from .aircraft import Aircraft, aircraft, size_of
+from .aircraft import SIZES, Aircraft, aircraft, size_of
 from .drag import Unavailable
 from .losses import (
     DRAG_RISE,
@@ -66,7 +66,19 @@ from .model import (
     state_hash,
 )
 from .prep import FEATURES, PrepConfig
-from .privacy import NUM, NUM_KEY, STR, dumps
+from .privacy import (
+    CODE,
+    CODE_OR_EMPTY,
+    NUM,
+    NUM_KEY,
+    SHA256,
+    VERSION,
+    Text,
+    dumps,
+    enum,
+    number_text,
+    settings_spec,
+)
 from .support import ENVELOPE, data_envelope, union_envelope
 
 
@@ -89,6 +101,17 @@ class TrainConfig:
     device: str = "auto"
     threads: int = 4
     loss: LossConfig = field(default_factory=LossConfig)
+
+
+# the weights of the loss terms (LossConfig): finite and 0 or more
+LOSS_WEIGHTS = (
+    "points",
+    "window",
+    *SHAPE_TERMS,
+    "range_boundary",
+    "drag_rise",
+    "teacher",
+)
 
 
 def check_config(cfg: TrainConfig) -> None:
@@ -121,13 +144,21 @@ def check_config(cfg: TrainConfig) -> None:
             raise ValueError(f"loss.{f.name} must be finite")
         if f.name in ("eps", "dT_isa") and not (len(v) == 2 and v[0] < v[1]):
             raise ValueError(f"loss.{f.name} must be (low, high)")
-    if lc.drag_rise < 0:
-        raise ValueError("loss.drag_rise must be 0 or more")
+    for k in LOSS_WEIGHTS:
+        if getattr(lc, k) < 0:  # a negative weight reverses the term
+            raise ValueError(f"loss.{k} must be 0 or more, got {getattr(lc, k)!r}")
     if lc.min_cas_kt >= cfg.aircraft.vmo_kt or lc.mach_min >= cfg.aircraft.mmo:
         raise ValueError(
             "loss.min_cas_kt and loss.mach_min must be below aircraft.vmo_kt and "
             "aircraft.mmo"
         )
+
+
+INIT_TEXT = ("from scratch", "continued from given weights")
+NO_ENVELOPE_WARNING = (
+    "the given weights have no valid envelope; the protection uses only points over "
+    "the aircraft envelope"
+)
 
 
 def pick_device(name: str) -> torch.device:
@@ -404,10 +435,12 @@ def train(
     model.envelope = (
         local_env if init is None else union_envelope(init_envelope, local_env)
     )
+    config = asdict(cfg)
+    config["device"] = cfg.device.split(":")[0]  # auto, cpu or cuda, no index
     rec = {
         "neuralfuel_version": __version__,
-        "config": asdict(cfg),
-        "init": "continued from given weights" if init is not None else "from scratch",
+        "config": config,
+        "init": INIT_TEXT[init is not None],
         "init_weights_sha256": init_hash,
         "protection": prot_rec,
         "features": list(FEATURES),
@@ -429,9 +462,7 @@ def train(
         "best_epoch": best_step / spe,
         "epochs_run": step / spe,
         "run_time_s": run_time,
-        "device": torch.cuda.get_device_name(device)
-        if device.type == "cuda"
-        else "cpu",
+        "device": device.type,  # the category only: no product name, no index
         "torch": torch.__version__,
         "python": platform.python_version(),
         "envelope": model.envelope,
@@ -461,10 +492,7 @@ def protection(teacher, shared_env, local_env, ac, lc, device):
         "warning": None,
     }
     if shared_env is None:
-        rec["warning"] = (
-            "the given weights have no valid envelope; the protection uses only "
-            "points over the aircraft envelope"
-        )
+        rec["warning"] = NO_ENVELOPE_WARNING
     x = teacher_points(ac, lc, shared_env)
     if shared_env is not None:
         rec["points_in_shared_envelope"] = len(x) - len(x) // 2
@@ -492,21 +520,38 @@ def write_run(model, rec, out_dir):
     return out / "model.pt", out / "run.json"
 
 
-def _spec(cls):
-    """Format (neuralfuel.privacy) of the fields of a settings dataclass."""
-    out = {}
-    for f in dataclasses.fields(cls):
-        t = f.type if isinstance(f.type, type) else None
-        if t is not None and dataclasses.is_dataclass(t):
-            out[f.name] = _spec(t)
-        elif f.type in (str, "str"):
-            out[f.name] = STR
-        else:
-            out[f.name] = NUM
-    return out
-
-
-AIRCRAFT = _spec(Aircraft)
+# the strings of the settings dataclasses (format of neuralfuel.privacy.allowed)
+SETTING_TEXTS = {
+    "temperature": enum(*TEMPERATURE_RULES),
+    "device": enum("auto", "cpu", "cuda"),
+    "type": CODE,
+    "engine": CODE_OR_EMPTY,
+}
+AIRCRAFT = settings_spec(Aircraft, SETTING_TEXTS)
+# the notes of a training without P7 (train, losses.drag_rise_setup,
+# drag.aerox_drag_model); a note of another form (for example with the text of an
+# aerox error) is not shared
+_TYPE = r"'[a-z0-9_]{1,16}'"
+DRAG_RISE_NOTE = Text(
+    "|".join(
+        (
+            enum(
+                "the given model has no P7 settings",
+                "loss.drag_rise is 0",
+                "the aircraft settings have no wing area",
+                "the envelope has no largest lift coefficient of the cruise windows "
+                "(no steady cruise windows)",
+            ).pattern,
+            f"aerox has no type {_TYPE}",
+            f"the aerox drag model of {_TYPE} has no wave drag",
+            f"aerox has no wing area for {_TYPE}",
+            number_text(
+                "the Mach band is empty: loss.drag_rise_mach_min ({}) is not below "
+                "aircraft.mmo ({})"
+            ).pattern,
+        )
+    )
+)
 HISTORY_TERMS = (
     "points",
     "window",
@@ -518,29 +563,29 @@ HISTORY_TERMS = (
 # the keys of the run record (format of neuralfuel.privacy.allowed); 'seed_val_losses'
 # is added by 'release'
 RUN_RECORD = {
-    "neuralfuel_version": STR,
-    "config": _spec(TrainConfig),
-    "init": STR,
-    "init_weights_sha256": STR,
+    "neuralfuel_version": VERSION,
+    "config": settings_spec(TrainConfig, SETTING_TEXTS),
+    "init": enum(*INIT_TEXT),
+    "init_weights_sha256": SHA256,
     "protection": {
         "teacher_weight": NUM,
         "points": NUM,
         "points_in_shared_envelope": NUM,
-        "warning": STR,
+        "warning": enum(NO_ENVELOPE_WARNING),
         "share_inside_local_envelope": NUM,
     },
-    "features": STR,
-    "temperature": STR,
+    "features": [enum(*FEATURES)],
+    "temperature": enum(*TEMPERATURE_RULES),
     "theta_exp": NUM,
     "aircraft": AIRCRAFT,
-    "size": STR,
+    "size": enum(*SIZES, "custom"),
     "n_params": NUM,
     "n_train_blocks": NUM,
     "n_aircraft": NUM,
     "n_val_blocks": NUM,
     "n_train_windows": NUM,
     "n_val_windows": NUM,
-    "budget": STR,
+    "budget": enum("steps", "epochs"),
     "steps_per_epoch": NUM,
     "val_loss": NUM,
     "best_step": NUM,
@@ -548,17 +593,17 @@ RUN_RECORD = {
     "best_epoch": NUM,
     "epochs_run": NUM,
     "run_time_s": NUM,
-    "device": STR,
-    "torch": STR,
-    "python": STR,
+    "device": enum("cpu", "cuda"),
+    "torch": VERSION,
+    "python": VERSION,
     "envelope": ENVELOPE,
     "local_envelope": ENVELOPE,
-    "prep": _spec(PrepConfig),
+    "prep": settings_spec(PrepConfig),
     "train_loss": NUM,
     "val_window_loss": NUM,
-    "weights_sha256": STR,
+    "weights_sha256": SHA256,
     "drag_rise": DRAG_RISE,
-    "drag_rise_note": STR,
+    "drag_rise_note": DRAG_RISE_NOTE,
     "history": [
         {"step": NUM, "epoch": NUM, "val": NUM, "theta_exp": NUM}
         | dict.fromkeys(HISTORY_TERMS, NUM)

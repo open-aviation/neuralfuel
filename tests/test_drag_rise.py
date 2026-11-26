@@ -21,9 +21,10 @@ from neuralfuel.losses import (
     drag_rise_states,
     model_loss_config,
 )
-from neuralfuel.model import load, save
+from neuralfuel.model import load, save, state_hash
 from neuralfuel.privacy import allowed, clean_json
 from neuralfuel.quality import check_model
+from neuralfuel.support import union_envelope
 from neuralfuel.train import RUN_RECORD, TrainConfig, train, write_run
 from neuralfuel.validate import REPORT, drag_rise_test, validate
 from neuralfuel.validate import drag_rise_states as vdrag_states
@@ -198,6 +199,11 @@ def test_continued_training_checks_the_table(
     assert code == 0, out
     rec = json.loads((tmp_path / "same/run.json").read_text())
     assert rec["drag_rise"]["table_sha256"] == stored["table_sha256"]
+    # the continued model records the installed aerox and passes 'drag_table'
+    assert rec["drag_rise"]["aerox_version"] == drag.aerox_version()
+    res = check_model(load(tmp_path / "same/model.pt"), load(shared), rec)
+    row = next(r for r in res["checks"] if r["check"] == "drag_table")
+    assert row["status"] == "pass", row
     build = drag.build_table
     monkeypatch.setattr(drag, "build_table", lambda spec: build(spec) + 1e-6)
     monkeypatch.setattr(drag, "aerox_version", lambda: "9.9")
@@ -251,6 +257,103 @@ def test_quality_check_rebuilds_the_tables(capsys, tmp_path, monkeypatch):
     dr = nohash.constraints["drag_rise"]
     with pytest.raises(ValueError, match="have no table_sha256"):
         drag_rise_test(nohash, model_loss_config(nohash), nohash.aircraft, dr)
+
+
+def test_quality_check_needs_the_p7_settings_of_the_base():
+    """A contribution with other P7 settings than the base fails 'drag_table'."""
+    shared = Path(__file__).parent.parent / "models/a320/nf-a320-cfm56_5b-xs.pt"
+    base = load(shared)
+    for change in ("mach_min", "drop"):
+        c = load(shared)
+        if change == "drop":
+            del c.constraints["drag_rise"]
+        else:
+            c.constraints["drag_rise"]["mach_min"] += 0.01
+        res = check_model(c, base)
+        row = next(r for r in res["checks"] if r["check"] == "drag_table")
+        assert not res["ok"] and row["status"] == "fail", change
+        assert "P7 settings of the contribution" in row["note"]
+    res = check_model(load(shared), base)
+    assert next(r for r in res["checks"] if r["check"] == "drag_table")["value"]
+    # only the aerox version differs (continued training records the installed one)
+    c = load(shared)
+    c.constraints["drag_rise"]["aerox_version"] = "0.0.1"
+    res = check_model(c, base)
+    row = next(r for r in res["checks"] if r["check"] == "drag_table")
+    assert (
+        row["status"] == "pass" and "contribution: table of aerox 0.0.1" in row["note"]
+    )
+
+
+def test_quality_check_builds_only_the_table_of_the_base(monkeypatch):
+    """check-model compares the P7 settings first and builds only the table of the
+    base, so the grid of a contribution does not set the size of a table; the table
+    builder refuses a grid that is too large."""
+    shared = Path(__file__).parent.parent / "models/a320/nf-a320-cfm56_5b-xs.pt"
+    base, c = load(shared), load(shared)
+    c.constraints["drag_rise"]["table"]["mach"] = [0.7, 0.82, 10**9]
+    with torch.no_grad():
+        c.net[0].weight[0, 0] = float("nan")  # stops after the flag checks
+    built = []
+    build = drag.build_table
+    monkeypatch.setattr(
+        drag, "build_table", lambda spec: built.append(spec) or build(spec)
+    )
+    res = check_model(c, base)
+    row = next(r for r in res["checks"] if r["check"] == "drag_table")
+    assert row["status"] == "fail" and "was not rebuilt" in row["note"]
+    assert built == [base.constraints["drag_rise"]["table"]]
+    monkeypatch.undo()
+    for spec in (
+        {"mach": [0.7, 0.82, 10**9], "cl": [0.05, 0.8, 76], "ln_delta": [-2, -0.4, 12]},
+        {
+            "mach": [0.7, 0.82, 1000],
+            "cl": [0.05, 0.8, 1000],
+            "ln_delta": [-2, -0.4, 12],
+        },
+        {"mach": [0.7, "x", 25], "cl": [0.05, 0.8, 76], "ln_delta": [-2, -0.4, 12]},
+    ):
+        with pytest.raises(ValueError, match="P7 table"):
+            drag.build_table(
+                {"type": "a320", "wing_area_m2": 122.0, "dmach": 1e-4, **spec}
+            )
+
+
+def test_merge_without_quality_check_fails(capsys, tmp_path):
+    """merge writes the files but exits with code 1 when the quality check of the
+    merged model cannot run (here: P7 settings of the base without table_sha256)."""
+    shared = Path(__file__).parent.parent / "models/a320/nf-a320-cfm56_5b-xs.pt"
+    base = load(shared)
+    del base.constraints["drag_rise"]["table_sha256"]
+    save(base, tmp_path / "base.pt")
+    dirs = []
+    for i, b in enumerate((0.001, 0.002)):
+        c = load(shared)
+        with torch.no_grad():
+            c.net[-1].bias.add_(b)
+        c.envelope = union_envelope(base.envelope, base.envelope)
+        rec = {
+            "weights_sha256": state_hash(c),
+            "init_weights_sha256": state_hash(base),
+            "local_envelope": base.envelope,
+        }
+        write_run(c, rec, tmp_path / f"c{i}")
+        dirs.append(str(tmp_path / f"c{i}"))
+    out_pt = tmp_path / "merged.pt"
+    code, out = run_cli(
+        capsys,
+        "merge",
+        *dirs,
+        "--base",
+        str(tmp_path / "base.pt"),
+        "--out",
+        str(out_pt),
+    )
+    assert code == 1 and not out["ok"]
+    assert out["quality_check"]["ok"] is None
+    assert "have no table_sha256" in out["quality_check"]["error"]
+    mr = json.loads((tmp_path / "merged.merge.json").read_text())
+    assert out_pt.exists() and mr["quality_check"]["ok"] is None
 
 
 def test_unavailable_reasons():

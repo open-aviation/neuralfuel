@@ -100,7 +100,8 @@ Aircraft settings: MMO 0.82, VMO 350 kt, mass 42,600 to 78,000 kg, altitude 10,0
 
 - 1 Hz flight-recorder data of one A320 dataset with two aircraft.
 - Flights split in time order: 875 for training, 109 for validation (early stopping), 110 for the test.
-- Clean configuration only: flaps and slats retracted, speed brake retracted, landing gear up and locked, CAS of 180 kt or more.
+- Clean configuration only: flaps and slats retracted, speed brake retracted, landing gear up and locked, CAS of 180 kt or more. The samples were decoded from the raw recorder parameters with an adapter that is not part of the package: `clean` is True when the flap code is 0 and the CONF 1 bit (slats extended with flaps retracted) is 0, `speedbrake` is True when spoiler 2 is deflected more than 5 deg on both sides, and `gear_down` is True when the landing gear is not up and locked. `prep` removed the speed-brake and gear-down samples.
+- The packaged example adapter `example_a320` does not apply these filters: its flap code reads 0 in CONF 1 and it has no speed-brake or gear flags (see [`docs/data.md`](../../docs/data.md), section "Adapters").
 - 10 s blocks: 520,973 for training, 67,273 for validation, 69,933 for the test. Steady 300 s cruise windows: 5,866 for training, 874 for validation, 750 for the test.
 
 The data stays with its owner. Only the model files and the aggregate records are shared.

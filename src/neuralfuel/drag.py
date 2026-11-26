@@ -38,6 +38,10 @@ TABLE_DMACH = 0.005
 TABLE_DCL = 0.01
 TABLE_CL_MIN = 0.05
 TABLE_N_DELTA = 12
+# limits of a table grid (build_table): points per axis and cells in all; the
+# defaults give about 25 x 70 x 12 cells
+MAX_AXIS_POINTS = 1000
+MAX_TABLE_CELLS = 2_000_000
 
 
 def aerox_version() -> str:
@@ -91,10 +95,33 @@ def table_spec(ac, mach_min: float, cl_max: float) -> dict:
 
 
 def axes(spec):
-    return [np.linspace(lo, hi, int(n)) for lo, hi, n in (spec[k] for k in AXES)]
+    """The grid axes of spec; ValueError for an axis that is not [low, high, points]
+    with 2 to MAX_AXIS_POINTS points and finite bounds, or a grid of more than
+    MAX_TABLE_CELLS cells."""
+    out, cells = [], 1
+    for k in AXES:
+        v = spec[k]
+        ok = isinstance(v, (list, tuple)) and len(v) == 3
+        ok = ok and all(_number(x) and math.isfinite(x) for x in v)
+        if not ok or not float(v[2]).is_integer() or not 2 <= v[2] <= MAX_AXIS_POINTS:
+            raise ValueError(
+                f"the P7 table axis '{k}' must be [low, high, points] with finite "
+                f"bounds and 2 to {MAX_AXIS_POINTS} points, got {v!r}"
+            )
+        cells *= int(v[2])
+        out.append(np.linspace(v[0], v[1], int(v[2])))
+    if cells > MAX_TABLE_CELLS:
+        raise ValueError(
+            f"the P7 table has {cells} cells; at most {MAX_TABLE_CELLS} are allowed"
+        )
+    return out
 
 
 AXES = ("mach", "cl", "ln_delta")
+
+
+def _number(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
 def drag_slope(model, aerox_area, wing_area, mach, cl, ln_delta, dmach=DMACH):
@@ -113,9 +140,11 @@ def drag_slope(model, aerox_area, wing_area, mach, cl, ln_delta, dmach=DMACH):
 
 
 def build_table(spec) -> np.ndarray:
-    """g on the grid of spec, shape (n_mach, n_cl, n_delta), float64."""
+    """g on the grid of spec, shape (n_mach, n_cl, n_delta), float64; ValueError for a
+    grid out of the limits (see `axes`)."""
+    grid = axes(spec)  # checks the size before any work
     model, area = aerox_drag_model(spec["type"])
-    m, c, d = np.meshgrid(*axes(spec), indexing="ij")
+    m, c, d = np.meshgrid(*grid, indexing="ij")
     return drag_slope(model, area, spec["wing_area_m2"], m, c, d, spec["dmach"])
 
 

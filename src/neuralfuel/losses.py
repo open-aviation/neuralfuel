@@ -41,7 +41,7 @@ import torch.nn.functional as F
 from . import drag
 from .aircraft import Aircraft
 from .atmos import T0, cas_from_mach_t, isa_delta_t, isa_temperature_t
-from .privacy import NUM, STR
+from .privacy import CODE, NUM, SHA256, VERSION, Nums, settings_spec
 from .support import in_envelope, random_inputs
 
 
@@ -108,17 +108,21 @@ DRAG_RISE = {
     "mach_max": NUM,
     "cl_factor": NUM,
     "cl_max": NUM,
-    "aerox_version": STR,
+    "aerox_version": VERSION,
     "table": {
-        "type": STR,
+        "type": CODE,
         "wing_area_m2": NUM,
-        "mach": NUM,
-        "cl": NUM,
-        "ln_delta": NUM,
+        "mach": Nums(3, exact=True),
+        "cl": Nums(3, exact=True),
+        "ln_delta": Nums(3, exact=True),
         "dmach": NUM,
     },
-    "table_sha256": STR,
+    "table_sha256": SHA256,
 }
+# format of the stored constraint settings (FuelFlowNet.constraints)
+CONSTRAINTS = {
+    k: v for k, v in settings_spec(LossConfig).items() if k in CONSTRAINT_SETTINGS
+} | {"drag_rise": DRAG_RISE}
 # LossConfig fields of P7 and their keys in the stored settings
 DRAG_RISE_FIELDS = {
     "drag_rise": "weight",

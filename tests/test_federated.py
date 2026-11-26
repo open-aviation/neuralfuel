@@ -566,13 +566,29 @@ def test_quality_check(base, data, base_cache, fuel_run):
     assert not res["ok"] and res["checks"][0]["status"] == "fail"
 
 
+def test_fuel_level_needs_overlap(base, base_cache):
+    """fuel_level gives the number of cruise grid states inside the base envelope and
+    the declared region; with none it is not measured (a warning), not a value of
+    other states."""
+    c = child(base, 0.01)
+    res = check_model(c, base, declared=base.envelope, cache=base_cache)
+    row = next(r for r in res["checks"] if r["check"] == "fuel_level")
+    assert row["states"] > 0 and row["value"] > 0.1
+    low = copy.deepcopy(base.envelope)
+    low["phases"]["level"]["alt_ft"] = [5000.0, 6000.0]  # no cruise state
+    res = check_model(c, base, declared=low, cache=base_cache)
+    row = next(r for r in res["checks"] if r["check"] == "fuel_level")
+    assert row["states"] == 0 and row["value"] is None and row["status"] == "warn"
+    assert row["note"].startswith("not measured")
+
+
 def test_quality_limits():
     assert _row("change_outside_max", float("inf"))["status"] == "fail"
     assert _row("mach_mean", float("nan"))["status"] == "fail"
     assert _row("mach_mean", None)["status"] == "warn"  # not measured
 
 
-def test_cli_check_model(capsys, tmp_path, base, fuel_run):
+def test_cli_check_model(capsys, tmp_path, base, fuel_run, monkeypatch):
     save(base, tmp_path / "base.pt")
     m, rec = fuel_run
     write_run(m, rec, tmp_path / "run")
@@ -611,6 +627,22 @@ def test_cli_check_model(capsys, tmp_path, base, fuel_run):
         capsys, "check-model", str(tmp_path / "solo" / "model.pt"), "--base", bp
     )
     assert code == 2 and "other weights" in out["error"]
+    # a run record of another shape is bad input (exit code 2), not an error
+    solo = str(tmp_path / "solo" / "model.pt")
+    for bad, words in (
+        ([rec], "root must be an object"),
+        ({**rec, "protection": [1]}, "'protection'"),
+        ({**rec, "local_envelope": [1, 2]}, "'local_envelope' is not an envelope"),
+        ({**rec, "local_envelope": {**rec["local_envelope"], "phases": []}}, "phases"),
+        ({**rec, "n_train_blocks": "many"}, "'n_train_blocks'"),
+    ):
+        (tmp_path / "solo" / "run.json").write_text(json.dumps(bad))
+        code, out = run_cli(capsys, "check-model", solo, "--base", bp)
+        assert code == 2 and words in out["error"], (words, out)
+    (tmp_path / "solo" / "run.json").write_text(json.dumps(rec))
+    monkeypatch.setattr("neuralfuel.cli.MAX_JSON_BYTES", 100)
+    code, out = run_cli(capsys, "check-model", solo, "--base", bp)
+    assert code == 2 and "larger than 100 bytes" in out["error"]
 
 
 # ---------------------------------------------------------------- comparison

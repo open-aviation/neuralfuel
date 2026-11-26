@@ -4,7 +4,7 @@
 
 neuralfuel needs Python 3.12 or later and [uv](https://docs.astral.sh/uv/). Run every command from the repository root.
 
-The shared models (`models/`), the examples (`examples/`) and this documentation (`docs/`) are in the repository, not in the installed package. The package is not on PyPI yet. An install from the repository without a clone (`uv add git+https://github.com/open-aviation/neuralfuel`) gives the library and the command `neuralfuel` only. The first example of the README and the examples need a clone of the repository:
+The shared models (`models/`), the examples (`examples/`) and this documentation (`docs/`) are in the repository, not in the installed package. An install from PyPI (`uv pip install neuralfuel`) gives the library and the command `neuralfuel` only. The first example of the README and the examples need a clone of the repository:
 
 ```sh
 git clone https://github.com/open-aviation/neuralfuel

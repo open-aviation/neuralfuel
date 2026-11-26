@@ -53,7 +53,7 @@ Without an adapter setting, the commands use `canonical`: a parquet or CSV file 
 
 The two included examples use absolute imports, so a copy of `src/neuralfuel/adapters/example_a320.py` or `src/neuralfuel/adapters/synthetic.py` in `local/` works unchanged:
 
-- `example_a320`: a processed 1 Hz table of the A320 dataset (raw TAT = 4 x degC with an invalid floor of -127, a flap code for the clean configuration). Its flap code reads 0 in CONF 1 and it has no speed-brake or gear flags, so its `clean` flag includes approach segments in CONF 1 and speed-brake use.
+- `example_a320`: a processed 1 Hz table of the A320 dataset (raw TAT = 4 x degC with an invalid floor of -127, a flap code for the clean configuration). Its flap code reads 0 in CONF 1 and it has no speed-brake or gear flags, so its `clean` flag includes approach segments in CONF 1 and speed-brake use. The shared A320 models were not trained with this adapter: their adapter decoded the CONF 1 bit and the speed-brake and gear flags from the raw recorder parameters (see the model card `models/a320/README.md`, section "Training data").
 - `synthetic`: the raw format of the synthetic dataset (metres, m/s, tonnes, kg/s, degC).
 
 ### A private adapter
@@ -78,6 +78,8 @@ Notes for an adapter:
 - Give aircraft only neutral labels in `tail` (A, B, ...) and give flights neutral codes.
 
 With `local.toml` in place, run `profile`, `check`, `prep`, `train`, `validate` and `contribute` as in the quick start, without the data argument.
+
+If the adapter raises an exception, the commands give exit code 2 and a short message: the operation, the class of the exception and the function and line in the adapter file, for example `adapter 'local/my_adapter.py' failed: ValueError in load, line 31 of the adapter (...)`. The message of the exception is not shown, because it can hold a value of the data (for example a time or a flight identifier that a parser could not read). A `KeyError` for a missing column names the column if the name is a schema column or is written in the adapter file. Run the adapter on your computer, outside the tool, to see the full message; do not give that message to another person or an AI agent.
 
 ## Checks
 
@@ -129,7 +131,7 @@ The output folder holds `blocks.parquet`, `windows.parquet` and `prep.json`. `pr
 The raw data stays with the user. Only the model files, the run record and the validation report are shared.
 
 - `profile` and `check` print summaries and test results, never rows.
-- The validation report and the run record contain no flight identifiers, dates, positions or aircraft labels. `contribute` scans both for fields that look like an identifier, a date or a position and stops (exit code 1) if it finds one.
+- The validation report and the run record contain no flight identifiers, dates, positions or aircraft labels. `contribute` scans both for fields that look like an identifier, a date or a position and stops (exit code 1) if it finds one. It then keeps only the fields of the record formats with values of the declared shapes (see `contribute` in [cli.md](cli.md)): no free text enters the contribution.
 - Never share flight data in any form: raw files, prepared blocks and windows (`work/prep`), samples, plots of single flights.
 - Never write flight identifiers, aircraft registrations, dates, times, positions, airports, routes, the name of the data owner or of an airline, or data paths into tracked files, file names or commit messages.
 - `local.toml`, `local/` and the private local offsets of `local-fit` stay on the computer of the user (see [federated.md](federated.md)).

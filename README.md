@@ -15,6 +15,14 @@ uv pip install neuralfuel
 uv run neuralfuel --help
 ```
 
+This installs the library and the command `neuralfuel`. The shared models (`models/`), the examples and the documentation are in the repository (https://github.com/open-aviation/neuralfuel), not in the PyPI package. To get them, clone the repository instead:
+
+```sh
+git clone https://github.com/open-aviation/neuralfuel
+cd neuralfuel
+uv sync
+```
+
 The quick start with synthetic data is in [docs/quickstart.md](docs/quickstart.md).
 
 ## Shared models
@@ -25,7 +33,7 @@ For example, [`models/a320/`](models/a320/README.md) holds the models for the A3
 
 ## Use a neuralfuel model
 
-You can use the included A320 model to estimate fuel flow as follows:
+You can use the shared A320 model to estimate fuel flow as follows. The example needs a clone of the repository and runs from the repository root; the model path is relative to the repository root.
 
 ```python
 from neuralfuel.model import load

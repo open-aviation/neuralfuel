@@ -85,7 +85,9 @@ def best_range(f, env, mass_kg):
     opti.subject_to(opti.bounded(lo, h, lv["alt_ft"][1]))
     wd = mass_kg / delta / 1000  # W/delta, t
     opti.subject_to(wd >= lv["wd_t"][0])
-    opti.subject_to(wd <= min(lv["wd_t"][1], cr["max_wd_t"]))
+    opti.subject_to(wd <= lv["wd_t"][1])
+    if cr["max_wd_t"] is not None:  # no cruise limit without steady windows
+        opti.subject_to(wd <= cr["max_wd_t"])
     if cr["max_cl"] is not None:
         cl = (
             2

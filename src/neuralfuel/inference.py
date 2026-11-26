@@ -1,6 +1,7 @@
 """Prediction, inputs from ADS-B / Mode S quality data, and ONNX export."""
 
 import json
+import math
 import warnings
 from pathlib import Path
 
@@ -20,6 +21,14 @@ from .support import in_envelope, random_inputs
 # log(1 + exp(x))) is refused when a hidden pre-activation inside the envelope exceeds
 # this value
 MAX_PREACTIVATION = 80.0
+# largest relative fuel-flow difference ONNX / PyTorch of an export that is accepted
+ONNX_TOLERANCE = 1e-4
+
+
+def onnx_agrees(max_rel_diff_ff) -> bool:
+    """True if the largest relative fuel-flow difference between the ONNX file and
+    PyTorch (export_onnx, 'max_rel_diff_ff') is finite and below ONNX_TOLERANCE."""
+    return math.isfinite(max_rel_diff_ff) and max_rel_diff_ff < ONNX_TOLERANCE
 
 
 def predict(model: FuelFlowNet, x, outside=False, offsets=None):
@@ -359,12 +368,36 @@ def onnx_metadata(path) -> dict:
     }
 
 
+def external_tensors(graph) -> list:
+    """Names of the tensors of an ONNX graph (initializers and attributes, subgraphs
+    included) whose values are stored in an external file."""
+    from onnx import AttributeProto, TensorProto
+
+    def ext(t):
+        return t.data_location == TensorProto.EXTERNAL or len(t.external_data) > 0
+
+    out = [t.name for t in graph.initializer if ext(t)]
+    out += [t.values.name for t in graph.sparse_initializer if ext(t.values)]
+    for n in graph.node:
+        for a in n.attribute:
+            if a.type == AttributeProto.TENSOR and ext(a.t):
+                out.append(a.t.name or n.name)
+            out += [t.name or n.name for t in a.tensors if ext(t)]
+            if a.type == AttributeProto.GRAPH:
+                out += external_tensors(a.g)
+            for g in a.graphs:
+                out += external_tensors(g)
+    return out
+
+
 def casadi_function(path, expand=False):
     """Import an exported ONNX file into CasADi symbolically (needs the optional
     dependency casadi, dependency group 'casadi').
 
     Returns a casadi.Function 'ln_fuel_flow' of x (1, 6), the model inputs in the
-    order of FEATURES, to ln of fuel flow in kg/h (1, 1). The CasADi importer has no
+    order of FEATURES, to ln of fuel flow in kg/h (1, 1). The file is read without
+    external data: a graph with tensors in an external file raises ValueError before
+    CasADi is called. The CasADi importer has no
     Softplus operator, so Softplus is rewritten as Log(1 + Exp(x)) first; the batch
     dimension is fixed to 1 (use Function.map for many states). expand=True converts
     the imported graph to scalar expressions (SX); for these dense layers the matrix
@@ -375,7 +408,14 @@ def casadi_function(path, expand=False):
     import casadi as ca
     import onnx
 
-    m = _softplus_to_log1pexp(onnx.load(str(path)))
+    m = onnx.load(str(path), load_external_data=False)
+    ext = external_tensors(m.graph)
+    if ext:  # CasADi would read the files that these tensors name
+        raise ValueError(
+            f"{Path(path).name}: the ONNX graph has {len(ext)} tensors with external "
+            "data; casadi_function reads only a self-contained file (export_onnx)"
+        )
+    m = _softplus_to_log1pexp(m)
     for v in (m.graph.input[0], m.graph.output[0]):
         d = v.type.tensor_type.shape.dim[0]
         d.ClearField("dim_param")

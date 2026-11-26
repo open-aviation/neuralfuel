@@ -67,3 +67,61 @@ def test_example_optimizer_checks_the_fixed_inputs():
     assert status == "Solve_Succeeded"
     x = model_inputs(m, h, 62000.0, ex["DT_ISA"], 0.0)
     assert in_envelope(env, x).all()
+
+
+def test_casadi_function_refuses_external_data(tmp_path):
+    """An ONNX file with tensors in an external file is refused before CasADi reads
+    it (casadi_function loads the graph without external data)."""
+    import numpy as np
+    import onnx
+    from onnx import TensorProto, helper, numpy_helper
+
+    from neuralfuel.inference import casadi_function, external_tensors
+
+    w = numpy_helper.from_array(np.ones((6, 1), dtype=np.float32), "w")
+    graph = helper.make_graph(
+        [helper.make_node("MatMul", ["x", "w"], ["ln_fuel_flow"])],
+        "g",
+        [helper.make_tensor_value_info("x", TensorProto.FLOAT, ["n", 6])],
+        [helper.make_tensor_value_info("ln_fuel_flow", TensorProto.FLOAT, ["n", 1])],
+        [w],
+    )
+    m = helper.make_model(graph)
+    path = tmp_path / "ext.onnx"
+    onnx.save_model(
+        m,
+        str(path),
+        save_as_external_data=True,
+        location="weights.bin",
+        size_threshold=0,
+    )
+    assert (tmp_path / "weights.bin").exists()
+    assert external_tensors(onnx.load(str(path), load_external_data=False).graph)
+    with pytest.raises(ValueError, match="external data"):
+        casadi_function(path)
+
+
+def test_example_bounds_without_cruise_limit():
+    """examples/05: an envelope without steady windows (no W/delta limit of cruise)
+    still gives the level-flight bounds."""
+    import copy
+    import importlib.util
+    from pathlib import Path
+
+    from neuralfuel.inference import casadi_function, onnx_metadata
+
+    root = Path(__file__).parent.parent
+    spec = importlib.util.spec_from_file_location(
+        "example05", root / "examples/05_casadi_optimize.py"
+    )
+    ex = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ex)
+    onnx_path = root / "models/a320/nf-a320-cfm56_5b-xs.onnx"
+    env = copy.deepcopy(onnx_metadata(onnx_path)["envelope"])
+    env["cruise"].update(max_wd_t=None, max_cl=None)
+    m, h, sar, status = ex.best_range(casadi_function(onnx_path), env, 62000.0)
+    lv = env["phases"]["level"]
+    assert (
+        lv["mach"][0] <= m <= lv["mach"][1] and lv["alt_ft"][0] <= h <= lv["alt_ft"][1]
+    )
+    assert sar > 0 and status

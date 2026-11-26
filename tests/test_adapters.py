@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 from conftest import run_cli
 
 from neuralfuel.adapters import example_a320, get_adapter
+from neuralfuel.cli import main
 from neuralfuel.schema import validate
 
 
@@ -110,3 +112,56 @@ def test_example_adapter_copy_works(tmp_path, syn_csv):
     copy = tmp_path / "copied.py"
     copy.write_text(Path(mod.__file__).read_text())
     assert len(get_adapter(str(copy))(syn_csv)) > 0
+
+
+def test_adapter_errors_hold_no_cell_values(capsys, tmp_path):
+    """An exception of the adapter is shown with its class, the operation and the
+    place in the adapter, never with its message (it can hold a cell value); a
+    missing column is named."""
+    mark = "PRIVATE-CELL-4711"
+    raw = pd.DataFrame({"stamp": ["2030-01-01T00:00:00", mark], "x": [1.0, 2.0]})
+    raw.to_csv(tmp_path / "raw.csv", index=False)
+    adapter = tmp_path / "bad_adapter.py"
+    adapter.write_text(
+        "import pandas as pd\n"
+        "from neuralfuel.adapters import read_table\n\n\n"
+        "def load(path):\n"
+        "    r = read_table(path)\n"
+        "    return pd.DataFrame({'time': pd.to_datetime(r.stamp, format='ISO8601')})\n"
+        "\n\n"
+        "def by_value(path):\n"
+        "    r = read_table(path)\n"
+        "    return {'x': 1}[r.stamp.iloc[1]]\n"
+        "\n\n"
+        "def no_column(path):\n"
+        "    return read_table(path)['altitude_raw']\n"
+    )
+    data = str(tmp_path / "raw.csv")
+    for cmd in ("profile", "check", "prep"):
+        out_dir = () if cmd != "prep" else ("--out", str(tmp_path / "p"))
+        code, out = run_cli(capsys, cmd, data, "--adapter", str(adapter), *out_dir)
+        assert code == 2 and mark not in json.dumps(out), cmd
+        assert "ValueError in load, line 7 of the adapter" in out["error"]
+        assert main([cmd, data, "--adapter", str(adapter), *out_dir]) == 2
+        text = capsys.readouterr()
+        assert mark not in text.out + text.err and "ValueError in load" in text.err
+    code, out = run_cli(capsys, "profile", data, "--adapter", f"{adapter}:by_value")
+    assert code == 2 and mark not in json.dumps(out) and out["column"] is None
+    assert "KeyError in by_value, line 12 of the adapter" in out["error"]
+    code, out = run_cli(capsys, "check", data, "--adapter", f"{adapter}:no_column")
+    assert code == 2 and out["column"] == "altitude_raw"
+    assert "column 'altitude_raw' not found" in out["error"]
+
+
+def test_unexpected_data_errors_hold_no_message(capsys, syn_csv, monkeypatch):
+    """An unexpected error (exit code 3) of a command that reads the samples does not
+    show its message either."""
+    mark = "PRIVATE-CELL-4712"
+
+    def fail(*a, **k):
+        raise ValueError(mark)
+
+    monkeypatch.setattr("neuralfuel.checks.profile", fail)
+    code, out = run_cli(capsys, "profile", str(syn_csv), "--adapter", "synthetic")
+    assert code == 3 and mark not in json.dumps(out)
+    assert out["error"].startswith("'profile' failed: ValueError in fail, line ")

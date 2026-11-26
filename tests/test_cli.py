@@ -256,40 +256,69 @@ def test_contribute_needs_new_or_empty_folder(capsys, cycle, tmp_path):
 
 
 def test_contribute_copies_allowed_fields_only(capsys, cycle, tmp_path):
+    """Only the keys of the formats with values of the declared shapes reach the
+    bundle; the dropped paths (whose keys can be private) are only in the output."""
+    mark = "PRIVATE-MARKER-0815"
     run = tmp_path / "run"
     shutil.copytree(cycle / "run", run)
     model = load(run / "model.pt")
-    model.envelope["note"] = "local/private-example.csv"
-    meta = {**read_meta(run / "model.pt"), "source_path": "local/private-example.csv"}
+    model.envelope["note"] = f"local/{mark}.csv"
+    meta = {**read_meta(run / "model.pt"), "source_path": f"local/{mark}.csv"}
     save(model, run / "model.pt", meta=meta)
     rec = json.loads((run / "run.json").read_text())
-    rec["notes"] = "local/private-example.csv"
-    rec["protection"]["comment"] = "local/private-example.csv"
-    rec["config"]["seed"] = "local/private-example.csv"  # a text in a number field
+    rec["notes"] = f"local/{mark}.csv"
+    rec[f"{mark}-key"] = 1  # a private key
+    rec["protection"]["comment"] = f"local/{mark}.csv"
+    rec["protection"]["warning"] = f"{mark} host"  # free text in a known field
+    rec["config"]["seed"] = f"local/{mark}.csv"  # a text in a number field
+    rec["config"]["lr"] = [[1, 2], [mark]]  # a nested list in a number field
+    rec["device"] = f"{mark}-host"  # only cpu or cuda is kept
+    rec["config"]["device"] = "cuda:3"  # no index
+    rec["torch"] = f"2.0 {mark}"
+    rec["drag_rise_note"] = f"aerox has no drag model for 'a320' ({mark})"
     (run / "run.json").write_text(json.dumps(rec))
     rep = json.loads((run / "validation.json").read_text())
-    rep["trip_fuel"]["source"] = "local/private-example.csv"
+    rep["trip_fuel"]["source"] = f"local/{mark}.csv"
+    rep["temperature_test"]["point"] = f"/home/{mark}/data.parquet"
+    rep["trip_fuel"]["flights"] = [3, [mark]]
+    rep["coverage"]["train"]["variables"]["mach"]["counts"] = list(range(65))
     (run / "validation.json").write_text(json.dumps(rep))
     code, out = contribute(capsys, run, run / "validation.json", tmp_path / "share")
     assert code == 0
     assert set(out["dropped_fields"]) == {
         "run.json.notes",
+        f"run.json.{mark}-key",
         "run.json.protection.comment",
+        "run.json.protection.warning",
         "run.json.config.seed",
+        "run.json.config.lr",
+        "run.json.config.device",
+        "run.json.device",
+        "run.json.torch",
+        "run.json.drag_rise_note",
         "validation.json.trip_fuel.source",
+        "validation.json.trip_fuel.flights",
+        "validation.json.temperature_test.point",
+        "validation.json.coverage.train.variables.mach.counts",
         "model.pt.envelope.note",
         "model.pt.meta.source_path",
     }
-    for name in ("run.json", "validation.json", "MANIFEST.json"):
-        assert "private-example" not in (tmp_path / "share" / name).read_text()
-    assert "private-example" not in json.dumps(
-        read_meta(tmp_path / "share" / "model.pt")
-    )
-    assert "note" not in load(tmp_path / "share" / "model.pt").envelope
-    assert set(read_meta(tmp_path / "share" / "model.pt")) == {
+    share = tmp_path / "share"
+    for f in share.iterdir():  # every file of the bundle, the binary ones included
+        assert mark.encode() not in f.read_bytes(), f.name
+    manifest = json.loads((share / "MANIFEST.json").read_text())
+    assert manifest["dropped_field_count"] == 16 and "dropped_fields" not in manifest
+    shared_rec = json.loads((share / "run.json").read_text())
+    assert "device" not in shared_rec and "device" not in shared_rec["config"]
+    assert "private-example" not in json.dumps(read_meta(share / "model.pt"))
+    assert "note" not in load(share / "model.pt").envelope
+    assert set(read_meta(share / "model.pt")) == {
         "weights_sha256",
         "init_weights_sha256",
     }
+    # the run record of a CPU training keeps the category of the device
+    rec = json.loads((cycle / "run" / "run.json").read_text())
+    assert rec["device"] == "cpu" and rec["config"]["device"] == "cpu"
 
 
 def test_contribute_needs_test_split_report(capsys, cycle, tmp_path):
@@ -324,6 +353,9 @@ def test_cli_input_errors(capsys, cycle, tmp_path):
         (["--set", "eval_every=0"], "eval_every"),
         (["--set", "loss=1"], "group of settings"),
         (["--set", "aircraft.mass_kg=[1]"], "2 numbers"),
+        (["--set", "loss.points=-1"], "loss.points must be 0 or more"),
+        (["--set", "loss.teacher=-0.5"], "loss.teacher must be 0 or more"),
+        (["--set", "loss.mach_convexity=-1e-3"], "loss.mach_convexity"),
     ):
         code, out = run_cli(capsys, *train, *opt)
         assert code == 2 and words in out["error"], (opt, out)
@@ -437,3 +469,63 @@ def test_contribute_refuses_identifiers(capsys, cycle, tmp_path):
     assert find_identifiers(rep) == ["$.coverage.flight_id"]
     # a key and its value name one field once
     assert find_identifiers({"date": "2030-01-01"}) == ["$.date"]
+
+
+def test_output_is_not_an_input(capsys, cycle, tmp_path):
+    """An output path that is an input file is bad input (exit code 2); the input
+    file is unchanged."""
+    run = tmp_path / "run"
+    shutil.copytree(cycle / "run", run)
+    prep, pt = cycle / "prep", run / "model.pt"
+    before = pt.read_bytes()
+    alias = tmp_path / "alias.pt"
+    alias.symlink_to(pt)
+    for argv in (
+        ("export", "--model", str(pt), "--out", str(pt)),
+        ("export", "--model", str(pt), "--out", str(alias)),
+        ("export", "--model", str(pt), "--out", str(run / ".." / "run" / "model.pt")),
+        ("validate", str(prep), "--model", str(pt), "--out", str(pt)),
+        ("local-fit", str(prep), "--model", str(pt), "--out", str(pt)),
+        ("train", str(prep), "--init", str(pt), "--out", str(run), "--steps", "1"),
+        ("merge", str(run), "--base", str(pt), "--out", str(pt)),
+        (
+            "merge",
+            str(run),
+            "--base",
+            str(cycle / "run" / "model.pt"),
+            "--out",
+            str(pt),
+        ),
+    ):
+        code, out = run_cli(capsys, *argv)
+        assert code == 2 and "is the input file" in out["error"], (argv, out)
+        assert pt.read_bytes() == before, argv
+    raw = tmp_path / "p" / "blocks.parquet"  # prep must not write over its data
+    raw.parent.mkdir()
+    shutil.copyfile(prep / "blocks.parquet", raw)
+    code, out = run_cli(capsys, "prep", str(raw), "--out", str(raw.parent))
+    assert code == 2 and "is the input file" in out["error"]
+    assert raw.read_bytes() == (prep / "blocks.parquet").read_bytes()
+
+
+def test_onnx_difference_must_be_finite(capsys, cycle, tmp_path, monkeypatch):
+    """A non-finite ONNX against PyTorch difference fails export and contribute."""
+    from neuralfuel import inference
+
+    assert inference.onnx_agrees(1e-6) and not inference.onnx_agrees(1e-4)
+    assert not inference.onnx_agrees(float("nan"))
+    assert not inference.onnx_agrees(float("inf"))
+    real = inference.export_onnx
+
+    def nan_export(*a, **k):
+        return {**real(*a, **k), "max_rel_diff_ff": float("nan")}
+
+    monkeypatch.setattr(inference, "export_onnx", nan_export)
+    run = cycle / "run"
+    code, out = run_cli(
+        capsys, "export", "--model", str(run / "model.pt"), "--out", str(tmp_path / "m")
+    )
+    assert code == 1 and not out["ok"]
+    code, out = contribute(capsys, run, run / "validation.json", tmp_path / "share")
+    assert code == 1 and not (tmp_path / "share").exists()
+    assert out["onnx_max_rel_diff_ff"] is None

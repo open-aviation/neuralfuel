@@ -5,7 +5,10 @@ Run every command from the repository root with `uv run neuralfuel COMMAND`. `uv
 ## Common rules
 
 - Every command accepts `--json` and then prints exactly one JSON object on stdout, with the fields `command`, `exit_code` and `ok`. This is also true for an error in the command-line arguments (exit code 2, the message in `error`). `train`, `release` and `merge --method combine` then write their progress lines to stderr. The JSON output and every JSON file that the commands write are standard JSON: a missing or non-finite value is `null`, never `NaN` or `Infinity`.
-- The commands check the options and the `--set` settings before they start any work: a name that is not a setting, a value of the wrong type (for example text for a number) and a value out of range (for example `--steps 0`) give exit code 2.
+- The commands check the options and the `--set` settings before they start any work: a name that is not a setting, a value of the wrong type (for example text for a number) and a value out of range (for example `--steps 0` or a negative loss weight) give exit code 2.
+- An output file that is one of the input files (for example `export --out` equal to `--model`, `merge --out` equal to the base or a contribution) gives exit code 2 before any file is written. The paths are compared after they are resolved, and existing files are compared as files, so a link to an input file is also refused.
+- The JSON files that the commands read (run records, validation reports, `prep.json`) must be at most 16 MiB and must have an object at the root; otherwise the exit code is 2.
+- An exception raised while the raw file is read or while the adapter converts it gives exit code 2 (exit code 3 for an unexpected error of `profile`, `check`, `prep` or `validate --surveillance`). The message gives the operation, the class of the exception and the function and line in the adapter, for example `adapter 'local/my_fleet.py' failed: ValueError in load, line 31 of the adapter (...)`. It does not give the message of the exception, because that message can hold a value of the data. A `KeyError` for a missing column names the column (`column` field) if the name is a schema column or is written in the adapter file.
 - Without `--json`, a command prints text: on stdout for exit code 0, on stderr otherwise.
 - The data commands (`profile`, `check`, `prep`) take the data file as the optional argument `DATA`. Without it, the path comes from the environment variable `NEURALFUEL_DATA` or from `local.toml`. `--adapter` gives the adapter; without it, the adapter comes from `NEURALFUEL_ADAPTER`, from `local.toml` or is `canonical` (see [data.md](data.md)).
 
@@ -14,8 +17,8 @@ Exit codes:
 | code | meaning |
 |---|---|
 | 0 | success |
-| 1 | a check failed (including the schema validation in `check`), the privacy test of `contribute` failed, `merge` refused a contribution, the ONNX file of `export` or `release` differs from PyTorch, or a quality check of `check-model` failed |
-| 2 | bad input: a missing file, a file that is not a model file, an unknown adapter, a schema error in `prep`, a missing `prep.json`, a missing run record, a run record of other weights, an unknown setting, a value of the wrong type or out of range, an error in the command-line arguments; the `column` field of the JSON output names the column when there is one |
+| 1 | a check failed (including the schema validation in `check`), the privacy test of `contribute` failed, `merge` refused a contribution or could not run the quality check of the merged model, the ONNX file of `export` or `release` differs from PyTorch, or a quality check of `check-model` failed |
+| 2 | bad input: a missing file, a file that is not a model file, an output path that is an input file, a JSON file that is too large or not an object, an unknown adapter, an error of the adapter, a schema error in `prep`, a missing `prep.json`, a missing run record, a run record of other weights, an unknown setting, a value of the wrong type or out of range, an error in the command-line arguments; the `column` field of the JSON output names the column when there is one |
 | 3 | unexpected error |
 
 ## Commands
@@ -47,7 +50,7 @@ Column names, types, missing fractions, value ranges and the sampling rate. No r
 | `--adapter` | adapter name, `module:function` or file path; with `--raw`, only its list `MEASUREMENTS` is used |
 | `--raw` | profile the raw file, without the adapter |
 
-Exit codes: 0, 2 (no data path, missing file, unknown adapter, adapter error).
+Exit codes: 0, 2 (no data path, missing file, unknown adapter, adapter error; see "Common rules" for the form of the message).
 
 ### check
 
@@ -71,7 +74,7 @@ Writes `blocks.parquet`, `windows.parquet` and `prep.json` into `DIR` (see "Prep
 | `--out` | output folder (required) |
 | `--set KEY=VALUE` | a field of `PrepConfig`, for example `exclude_anti_ice=true` or `block_s=10`; repeat for several |
 
-Exit codes: 0, 2 (bad input, a schema error, an unknown setting or a setting out of range, for example `block_s=0`).
+Exit codes: 0, 2 (bad input, a schema error, an unknown setting or a setting out of range, for example `block_s=0`, an output file that is the data file).
 
 ### train
 
@@ -97,15 +100,15 @@ Trains from scratch, or from `--init model.pt`. Writes `model.pt` and `run.json`
 | `--threads` | 4 | CPU threads |
 | `--set KEY=VALUE` | | other settings, for example `loss.window=0.1`, `lr=0.001`, `temperature=free` or `aircraft.mmo=0.86`; repeat for several. `aircraft.*` is refused with `--init`, because the aircraft settings come from the given model. The drag-rise term P7 is on by default where aerox has a drag model with wave drag for the type; elsewhere the training runs without it and `notes` says so. `loss.drag_rise=0` switches it off (settings: [training.md](training.md)) |
 
-`--steps`, `--patience-steps`, `--epochs`, `--patience` and `--threads` must be 1 or more.
+`--steps`, `--patience-steps`, `--epochs`, `--patience` and `--threads` must be 1 or more. The loss weights (`loss.points`, `loss.window`, `loss.mach_convexity`, `loss.mass_monotone`, `loss.energy_monotone`, `loss.range_boundary`, `loss.drag_rise`, `loss.teacher`) must be finite and 0 or more. The run record gives the device as `cpu` or `cuda` (`device`, and `config.device` as `auto`, `cpu` or `cuda`), without a product name or an index.
 
-Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, `--patience` without `--epochs`, missing aircraft settings, an unknown setting, a value of the wrong type or out of range, a non-finite loss, a P7 table of the `--init` model that the installed aerox does not reproduce).
+Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, `--init` in the folder `--out`, `--patience` without `--epochs`, missing aircraft settings, a negative loss weight, an unknown setting, a value of the wrong type or out of range, a non-finite loss, a P7 table of the `--init` model that the installed aerox does not reproduce).
 
 ### release
 
 `neuralfuel release PREP --out DIR [options] [--json]`
 
-Trains the sizes of `--sizes`, one model per seed, keeps the one with the lowest validation loss per size, validates it on the test split (with the preparation settings of `PREP/prep.json`) and exports it to ONNX. Writes `nf-<type>[-<engine>][-xs]` `.pt`, `.onnx`, `.run.json` and `.validation.json` into `DIR`. The file name and the size label come from the trained network. Do not write to `models/`. The output has `notes`, with one note for each kept model that was trained without the drag-rise term P7 (with the reason).
+Trains the sizes of `--sizes`, one model per seed, keeps the one with the lowest validation loss per size, validates it on the test split (with the preparation settings of `PREP/prep.json`) and exports it to ONNX. Writes `nf-<type>[-<engine>][-xs]` `.pt`, `.onnx`, `.run.json` and `.validation.json` into `DIR`. The file name and the size label come from the trained network. The validation of `release` does not run the surveillance-input test; `validate --surveillance` on a kept model adds it. Do not write to `models/`. The output has `notes`, with one note for each kept model that was trained without the drag-rise term P7 (with the reason).
 
 | option | default | meaning |
 |---|---|---|
@@ -126,7 +129,7 @@ Trains the sizes of `--sizes`, one model per seed, keeps the one with the lowest
 
 The help text of `release` describes `--aircraft` as "ignored with --init"; `release` has no `--init`.
 
-Exit codes: 0, 1 (an ONNX file differs from PyTorch by 1e-4 or more in relative fuel flow), 2 (bad input, an unknown size, `--set hidden` or `--set layers`).
+Exit codes: 0, 1 (an ONNX file differs from PyTorch by 1e-4 or more in relative fuel flow, or by a value that is not finite), 2 (bad input, an unknown size, `--set hidden` or `--set layers`).
 
 ### validate
 
@@ -147,7 +150,7 @@ Writes the validation report (see [validation.md](validation.md)). The block len
 | `--data` | `local.toml` | raw file for `--surveillance` |
 | `--adapter` | | adapter for `--surveillance` |
 
-Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, a model without aircraft settings and no `--aircraft`, an unknown split name, no blocks in the splits, P7 settings without `table_sha256`).
+Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, `--out` is an input file, a model without aircraft settings and no `--aircraft`, an unknown split name, no blocks in the splits, P7 settings without `table_sha256`).
 
 ### export
 
@@ -163,7 +166,7 @@ ONNX export, checked against PyTorch on 1,000 random inputs. For every temperatu
 
 With `--casadi`, exp overflows in float32 above about 88.7. The export is refused (exit code 2, no file written) when the largest hidden pre-activation at 4,096 states inside the envelope and at the check inputs is above 80 (`MAX_PREACTIVATION` in `neuralfuel.inference`). Export without `--casadi` then.
 
-Exit codes: 0, 1 (the largest relative fuel-flow difference is 1e-4 or more), 2 (a missing or invalid weights file, a `--casadi` export that can overflow).
+Exit codes: 0, 1 (the largest relative fuel-flow difference is 1e-4 or more, or not finite), 2 (a missing or invalid weights file, `--out` is the weights file, a `--casadi` export that can overflow).
 
 ### contribute
 
@@ -173,7 +176,7 @@ Assembles a contribution in a new folder: the weights `model.pt`, the ONNX file 
 
 - `DIR` must not exist or must be an empty folder. The files are written into a temporary folder next to `DIR`, which is renamed to `DIR` at the end, so `DIR` holds only these five files.
 - `model.pt` is a new file, written from the typed fields of the given weights; its meta entry holds only `weights_sha256` and `init_weights_sha256`. `model.onnx` is exported from it and checked against PyTorch.
-- `run.json` and `validation.json` are copies with only the keys of their current formats (`RUN_RECORD` in `neuralfuel.train`, `REPORT` in `neuralfuel.validate`). An unknown key, and a value of the wrong kind, is dropped and listed in `dropped_fields` of the output and of `MANIFEST.json`.
+- `run.json` and `validation.json` are copies with only the keys of their current formats (`RUN_RECORD` in `neuralfuel.train`, `REPORT` in `neuralfuel.validate`). Each kept value must have the shape that the format declares: a number, a bool, a list of numbers of bounded length, or a string that matches a fixed set or a strict pattern (a version, a SHA-256, a type or engine code, a size name, a sentence that the package writes from numbers). Free text does not enter the folder. The run record gives the device only as `cpu` or `cuda`, with no product name and no index. An unknown key, and a value of another shape, is dropped. The output (text and `--json`) lists the paths of the dropped fields in `dropped_fields`; this list stays on the computer of the user, because a key can itself be private. `MANIFEST.json` holds only their number (`dropped_field_count`).
 - The report must be of the test split only (`validate --splits test`, the default).
 - The run record is checked as in `check-model` and `merge` (see "Quality check of a contribution" in [federated.md](federated.md)): the weights hash, the base hash of the run record and of the meta entry, the declared region of a continued model and the envelope of the weights.
 
@@ -183,7 +186,7 @@ Assembles a contribution in a new folder: the weights `model.pt`, the ONNX file 
 | `--report` | `validation.json` of the test split (required) |
 | `--out` | new or empty output folder (required) |
 
-Exit codes: 0, 1 (the run record or the report contains a field that looks like an identifier, a date or a position; the ONNX file differs from PyTorch), 2 (a missing file; `DIR` exists and is not empty; a report that is not of the test split only; the report or the run record belongs to other weights; the run record and the weights file name different base models; a continued model without a declared region; an envelope that does not agree with the run record).
+Exit codes: 0, 1 (the run record or the report contains a field that looks like an identifier, a date or a position; the ONNX file differs from PyTorch, see `export`), 2 (a missing file; `DIR` exists and is not empty; a run record or report that is not a JSON object or has a part of another shape; an aircraft type or engine family of the weights that is not a code of lower case letters, digits and `_`; a report that is not of the test split only; the report or the run record belongs to other weights; the run record and the weights file name different base models; a continued model without a declared region; an envelope that does not agree with the run record).
 
 ### merge
 
@@ -203,7 +206,7 @@ Aggregates contributions that continued from the same base model (see [federated
 | `--device` | `auto` | `combine`: `auto`, `cpu`, `cuda` |
 | `--threads` | 4 | CPU threads |
 
-Exit codes: 0; 1 (a contribution was refused: another architecture, temperature rule, aircraft settings or standardization constants, a run record of other weights, a run record that names another base model or no base model, a model file that names another base than its run record, a run record without `local_envelope`, counts or an envelope that do not agree with the declared region, non-finite parameters, the same contribution twice, the base itself); 2 (a missing run record, bad `--weights`, envelopes that cannot be joined, with `combine` a P7 table of the base that the installed aerox does not reproduce). The quality check of the merged model is written into the merge record; its failure does not change the exit code.
+Exit codes: 0; 1 (a contribution was refused: another architecture, temperature rule, aircraft settings or standardization constants, a run record of other weights, a run record that names another base model or no base model, a model file that names another base than its run record, a run record without `local_envelope`, counts or an envelope that do not agree with the declared region, non-finite parameters, the same contribution twice, the base itself); 2 (a missing run record, a run record that is not a JSON object or has a part of another shape, `--out` or the merge record is an input file, bad `--weights`, envelopes that cannot be joined, with `combine` a P7 table of the base that the installed aerox does not reproduce). The quality check of the merged model is written into the merge record; its failure does not change the exit code. If the quality check cannot run (for example P7 settings of the base without `table_sha256`, or a base without aircraft settings or envelope), `merge` writes the files, prints that the merged model is unchecked and exits with code 1.
 
 ### local-fit
 
@@ -218,7 +221,7 @@ Fits the private offsets (climb, level, descent) per aircraft and writes them to
 | `--out` | | offsets file (required) |
 | `--split` | `train` | split to fit on |
 
-Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, no blocks in the split).
+Exit codes: 0, 2 (no prepared data or no `prep.json`, a missing or invalid weights file, `--out` is an input file, no blocks in the split).
 
 ### check-model
 
@@ -232,7 +235,7 @@ Quality check of a contribution against its base model, without flight data (see
 | `--base` | the shared model it continued from (required) |
 | `--run` | run record of the contribution (default: `run.json` next to `M`) |
 
-Exit codes: 0 no check failed (warnings are allowed), 1 at least one check failed (also `base` for a model file that names another base than its run record, `declared_region` for a run record without `local_envelope`, and `drag_table` for a P7 table that the installed aerox does not reproduce), 2 (no run record, a run record of other weights, a base without aircraft settings or envelope, P7 settings without `table_sha256`).
+Exit codes: 0 no check failed (warnings are allowed), 1 at least one check failed (also `base` for a model file that names another base than its run record, `declared_region` for a run record without `local_envelope`, and `drag_table` for a P7 table of the base that the installed aerox does not reproduce or P7 settings of the contribution that differ from those of the base; `aerox_version` is not compared), 2 (no run record, a run record that is not a JSON object or has a part of another shape, a run record of other weights, a base without aircraft settings or envelope, P7 settings without `table_sha256`, a P7 table grid out of the limits of `neuralfuel.drag`).
 
 ### compare
 

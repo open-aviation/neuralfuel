@@ -91,7 +91,7 @@ A constant input (for example a fixed mass in the data) gets the standardization
 - counts: `n_train_blocks`, `n_val_blocks`, `n_train_windows`, `n_val_windows`, and `n_aircraft` (distinct `tail` labels, 1 without a `tail` column);
 - the budget: `budget`, `steps_per_epoch`, `best_step`, `steps_run`, `best_epoch`, `epochs_run`;
 - losses: `val_loss`, `train_loss`, `val_window_loss`;
-- `run_time_s`, `device`, `torch`, `python`, `neuralfuel_version`;
+- `run_time_s`, `device` (`cpu` or `cuda`, without a product name or an index), `torch`, `python`, `neuralfuel_version`;
 - `envelope` (the valid envelope of the model) and `local_envelope` (the envelope of the local training data);
 - `prep`: the preparation settings of `prep.json` (block length, phase thresholds, window settings);
 - `weights_sha256`: the hash of the weights (`neuralfuel.model.state_hash`);
@@ -107,7 +107,7 @@ uv run neuralfuel validate work/prep --model work/run/model.pt --out work/run/va
 uv run neuralfuel export --model work/run/model.pt --out work/run/model.onnx
 ```
 
-The validation report is described in [validation.md](validation.md). `export` writes the ONNX file and compares it with PyTorch on 1,000 random inputs; it exits with code 1 if the largest relative difference of the fuel flow is 1e-4 or more.
+The validation report is described in [validation.md](validation.md). `export` writes the ONNX file and compares it with PyTorch on 1,000 random inputs; it exits with code 1 if the largest relative difference of the fuel flow is 1e-4 or more, or not finite.
 
 ## Both sizes: release
 

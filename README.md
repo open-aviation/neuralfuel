@@ -8,6 +8,8 @@ The models calculate the total fuel flow from Mach number, pressure altitude, ma
 
 A user can continue the training of a public shared model on local data and share only the model weights, the run record and an aggregate validation report; the raw data stays with the user. neuralfuel combines the contributions of users into the next shared model without revealing any flight data.
 
+![One federated round: users train on private data and share only the model weights, the run record and the validation report](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/federated_round.png)
+
 ## Install
 
 ```sh
@@ -31,6 +33,10 @@ The folder [`models/`](models/README.md) holds the shared models, one folder per
 
 For example, [`models/a320/`](models/a320/README.md) holds the models for the A320 with CFM56-5B engines, in two sizes: `nf-a320-cfm56_5b` and `nf-a320-cfm56_5b-xs`. Each model has a PyTorch file (`.pt`), an ONNX file (`.onnx`), a run record and a validation report. The model card `models/a320/README.md` gives the inputs, the valid envelope, the accuracy, the comparison with OpenAP and the limits.
 
+Accuracy of the standard A320 model on the test flights, which were not used in the training:
+
+![Predicted against measured fuel flow, and the distribution of the trip fuel error](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/accuracy.png)
+
 ## Use a neuralfuel model
 
 You can use the shared A320 model to estimate fuel flow as follows. The example needs a clone of the repository and runs from the repository root; the model path is relative to the repository root.
@@ -42,6 +48,10 @@ from neuralfuel.inference import fuel_flow
 model = load("models/a320/nf-a320-cfm56_5b.pt")
 fuel_flow(model, mach=0.78, alt_ft=37000, mass_kg=62000, sat_k=225.0)  # kg/h
 ```
+
+The model is smooth and obeys the physical constraints, so it can also give performance quantities such as the specific air range ([`examples/02_cruise_performance.py`](examples/02_cruise_performance.py)):
+
+![Specific air range of the shared A320 model against Mach](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/sar_mach.png)
 
 ## Contributing to the federated model training
 

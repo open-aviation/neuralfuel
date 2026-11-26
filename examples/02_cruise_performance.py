@@ -88,6 +88,59 @@ def best_altitude(model, masses, alts, inside_only=True):
     return rows
 
 
+# Plot style of the README figures (the same as in the aerox README).
+COLORS = ("#2a78d6", "#eb6834", "#1baf7a")
+INK, INK2, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#ebeae6", "#c9c8c2", "#fcfcfb"
+STYLE = {
+    "font.family": ["IBM Plex Sans", "DejaVu Sans"],
+    "font.size": 9.5,
+    "figure.facecolor": SURFACE,
+    "axes.facecolor": SURFACE,
+    "savefig.facecolor": SURFACE,
+    "axes.edgecolor": AXIS,
+    "axes.linewidth": 0.8,
+    "axes.labelcolor": INK2,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.spines.left": False,
+    "axes.grid": True,
+    "axes.grid.axis": "y",
+    "axes.axisbelow": True,
+    "grid.color": GRID,
+    "grid.linewidth": 0.6,
+    "xtick.color": INK2,
+    "ytick.color": INK2,
+    "xtick.major.size": 0,
+    "ytick.major.size": 0,
+    "xtick.major.pad": 6,
+    "ytick.major.pad": 6,
+    "legend.frameon": False,
+    "legend.fontsize": 9,
+    "legend.labelcolor": INK2,
+    "lines.linewidth": 2.0,
+    "lines.solid_capstyle": "round",
+}
+
+
+def titles(ax, title, subtitle, above=0.0):
+    """A bold title and a subtitle, left-aligned, `above` points over the axes."""
+    for text, dy, size, color, weight in (
+        (title, 22, 12, INK, "semibold"),
+        (subtitle, 6, 9.5, INK2, "normal"),
+    ):
+        ax.annotate(
+            text,
+            (0, 1),
+            xycoords="axes fraction",
+            xytext=(0, above + dy),
+            textcoords="offset points",
+            fontsize=size,
+            color=color,
+            fontweight=weight,
+            va="bottom",
+        )
+
+
 def plot(curves, rows, envelope, out_dir):
     import matplotlib
 
@@ -96,67 +149,75 @@ def plot(curves, rows, envelope, out_dir):
 
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    colors = ("#1b6ca8", "#d1495b", "#2e8b57")
-    fig, axes = plt.subplots(1, len(ALTS), figsize=(10, 3.6), sharey=True)
-    for ax, a in zip(axes, ALTS, strict=True):
-        for w, c in zip(MASSES, colors, strict=True):
-            _, sar, outside = curves[a, w]
-            ins = np.where(outside, np.nan, sar)
-            ax.plot(MACH, sar, color=c, lw=1, ls=":")
-            ax.plot(MACH, ins, color=c, lw=2, label=f"{w / 1000:.0f} t")
-            i = int(np.argmax(sar))
-            ax.plot(MACH[i], sar[i], "o", color=c, ms=5, mfc="white")
-        ax.set_xlabel("Mach")
-        ax.text(0.03, 0.04, f"{a:,.0f} ft", transform=ax.transAxes)
-        ax.grid(alpha=0.3)
-    axes[0].set_ylabel("specific air range (NM per 1000 kg)")
-    axes[0].legend(title="mass", loc="upper left", fontsize=8, title_fontsize=8)
-    fig.text(
-        0.5,
-        0.005,
-        f"solid: inside the valid envelope; dotted: outside; circle: largest SAR "
-        f"on the curve. ISA {DT_ISA:+.0f} K, level flight.",
-        ha="center",
-        fontsize=8,
-    )
-    fig.tight_layout(rect=(0, 0.04, 1, 1))
-    p1 = out_dir / "sar_mach.png"
-    fig.savefig(p1, dpi=100, facecolor="white")
-    plt.close(fig)
+    save = dict(dpi=150, bbox_inches="tight", pad_inches=0.15)
+    with plt.rc_context(STYLE):
+        fig, axes = plt.subplots(1, len(ALTS), figsize=(9, 3.4), sharey=True)
+        fig.subplots_adjust(left=0.08, right=0.99, bottom=0.14, top=0.84, wspace=0.12)
+        for ax, a in zip(axes, ALTS, strict=True):
+            for w, c in zip(MASSES, COLORS, strict=True):
+                _, sar, outside = curves[a, w]
+                ins = np.where(outside, np.nan, sar)
+                ax.plot(MACH, sar, color=c, lw=1.2, ls=(0, (1, 2)))
+                ax.plot(MACH, ins, color=c, label=f"{w / 1000:.0f} t")
+                i = int(np.argmax(sar))
+                ax.plot(MACH[i], sar[i], "o", color=c, ms=6, mfc=SURFACE, mew=1.5)
+            ax.set_xlabel("Mach")
+            ax.set_title(f"{a:,.0f} ft", loc="left", fontsize=9.5, color=INK)
+        axes[0].set_ylabel("Specific air range (NM per 1000 kg)")
+        axes[-1].legend(loc="lower right", handlelength=1.5)
+        titles(
+            axes[0],
+            "Specific air range of the shared A320 model against Mach",
+            f"Level flight, ISA {DT_ISA:+.0f} K. Solid: inside the valid envelope; "
+            "dotted: outside; circle: largest SAR on the curve.",
+            above=18,
+        )
+        p1 = out_dir / "sar_mach.png"
+        fig.savefig(p1, **save)
+        plt.close(fig)
 
-    ok = [r for r in rows if r[1] is not None]
-    fig, ax = plt.subplots(figsize=(5.5, 3.6))
-    ax.plot(
-        [r[0] / 1000 for r in ok],
-        [r[1] for r in ok],
-        "o-",
-        color=colors[0],
-        label="inside the valid envelope",
-    )
-    lv = envelope["phases"]["level"]
-    w = np.linspace(min(r[0] for r in rows), max(r[0] for r in rows), 50)
-    ax.plot(
-        w / 1000,
-        atmos.alt_from_delta(w / (1000.0 * lv["wd_t"][1])),
-        "--",
-        color=colors[1],
-        label=f"W/delta = {lv['wd_t'][1]:.1f} t (envelope limit)",
-    )
-    ax.axhline(
-        lv["alt_ft"][1],
-        ls=":",
-        color=colors[2],
-        label=f"{lv['alt_ft'][1]:,.0f} ft (envelope limit)",
-    )
-    ax.set_xlabel("mass (1000 kg)")
-    ax.set_ylabel("pressure altitude of largest SAR (ft)")
-    ax.grid(alpha=0.3)
-    ax.legend(fontsize=8, loc="lower left")
-    ax.set_ylim(top=lv["alt_ft"][1] + 400)
-    fig.tight_layout()
-    p2 = out_dir / "best_altitude.png"
-    fig.savefig(p2, dpi=100, facecolor="white")
-    plt.close(fig)
+        ok = [r for r in rows if r[1] is not None]
+        fig, ax = plt.subplots(figsize=(6, 3.6))
+        fig.subplots_adjust(left=0.14, right=0.98, bottom=0.14, top=0.84)
+        lv = envelope["phases"]["level"]
+        w = np.linspace(min(r[0] for r in rows), max(r[0] for r in rows), 50)
+        ax.plot(
+            w / 1000,
+            atmos.alt_from_delta(w / (1000.0 * lv["wd_t"][1])),
+            color=COLORS[1],
+            lw=1.5,
+            ls=(0, (4, 3)),
+            label=f"W/delta = {lv['wd_t'][1]:.1f} t (envelope limit)",
+        )
+        ax.axhline(
+            lv["alt_ft"][1],
+            color=COLORS[2],
+            lw=1.5,
+            ls=(0, (1, 2)),
+            label=f"{lv['alt_ft'][1]:,.0f} ft (envelope limit)",
+        )
+        ax.plot(
+            [r[0] / 1000 for r in ok],
+            [r[1] for r in ok],
+            "o-",
+            color=COLORS[0],
+            ms=6,
+            mec=SURFACE,
+            mew=1.5,
+            label="Inside the valid envelope",
+        )
+        ax.set_xlabel("Mass (1000 kg)")
+        ax.set_ylabel("Pressure altitude (ft)")
+        ax.legend(loc="lower left")
+        ax.set_ylim(top=lv["alt_ft"][1] + 400)
+        titles(
+            ax,
+            "Altitude of the largest SAR against mass",
+            "Over Mach and altitude, inside the valid envelope",
+        )
+        p2 = out_dir / "best_altitude.png"
+        fig.savefig(p2, **save)
+        plt.close(fig)
     return p1, p2
 
 

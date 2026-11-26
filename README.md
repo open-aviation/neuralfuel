@@ -6,6 +6,8 @@ Detailed flight data with fuel information (such as QAR data) is hard to share f
 
 The models calculate the total fuel flow from Mach number, pressure altitude, mass, energy-rate variables and static air temperature. The training uses physical constraints.
 
+![The six inputs, the network, the fixed temperature rule and the physical constraints of the model](docs/img/model.png)
+
 A user can continue the training of a public shared model on local data and share only the model weights, the run record and an aggregate validation report; the raw data stays with the user. neuralfuel combines the contributions of users into the next shared model without revealing any flight data.
 
 ![One federated round: users train on private data and share only the model weights, the run record and the validation report](docs/img/federated_round.png)

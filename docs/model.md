@@ -2,6 +2,8 @@
 
 The model gives the total fuel flow of all engines (kg/h) of one aircraft type from Mach, pressure altitude, mass, two energy-rate inputs and the static air temperature. It covers flight in clean configuration (flaps and slats retracted) with the speed brake and the landing gear retracted. The default settings are for the A320.
 
+![The six inputs, the network, the fixed temperature rule and the physical constraints of the model](img/model.png)
+
 ## Inputs and output
 
 The model has six inputs, always in this order (`FEATURES` in `src/neuralfuel/prep.py`):

@@ -2,6 +2,8 @@
 
 Detailed flight data with fuel information is hard to share, but a trained model is not. In neuralfuel the shared model is a file, and each user improves it with data that never leaves their own computer. A maintainer combines the contributions of several users into the next shared model.
 
+![One federated round: users train on private data and share only the model weights, the run record and the validation report](img/federated_round.png)
+
 Users with different operations cover different parts of the flight envelope, such as other temperatures, speeds and weights. A shared model can therefore cover a wider range than the data of one user.
 
 The examples below use the A320 model `models/a320/nf-a320-cfm56_5b.pt`. Use the model of your aircraft type and engine family. One federated round in Python, on synthetic data: [`examples/07_federated_round.py`](../examples/07_federated_round.py).

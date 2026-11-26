@@ -8,7 +8,7 @@ The models calculate the total fuel flow from Mach number, pressure altitude, ma
 
 A user can continue the training of a public shared model on local data and share only the model weights, the run record and an aggregate validation report; the raw data stays with the user. neuralfuel combines the contributions of users into the next shared model without revealing any flight data.
 
-![One federated round: users train on private data and share only the model weights, the run record and the validation report](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/federated_round.png)
+![One federated round: users train on private data and share only the model weights, the run record and the validation report](docs/img/federated_round.png)
 
 ## Install
 
@@ -35,7 +35,7 @@ For example, [`models/a320/`](models/a320/README.md) holds the models for the A3
 
 Accuracy of the standard A320 model on the test flights, which were not used in the training:
 
-![Predicted against measured fuel flow, and the distribution of the trip fuel error](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/accuracy.png)
+![Predicted against measured fuel flow, and the distribution of the trip fuel error](docs/img/accuracy.png)
 
 ## Use a neuralfuel model
 
@@ -51,7 +51,7 @@ fuel_flow(model, mach=0.78, alt_ft=37000, mass_kg=62000, sat_k=225.0)  # kg/h
 
 The model is smooth and obeys the physical constraints, so it can also give performance quantities such as the specific air range ([`examples/02_cruise_performance.py`](examples/02_cruise_performance.py)):
 
-![Specific air range of the shared A320 model against Mach](https://raw.githubusercontent.com/open-aviation/neuralfuel/main/docs/img/sar_mach.png)
+![Specific air range of the shared A320 model against Mach](docs/img/sar_mach.png)
 
 ## Contributing to the federated model training
 
